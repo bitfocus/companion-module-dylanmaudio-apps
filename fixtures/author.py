@@ -64,9 +64,14 @@ def T(id_, tier, intent, data, *, base=1, socket="mixrack", note=None):
     tx.append(case)
 
 
-def R(id_, tier, data, events, *, base=1, socket="mixrack", chunks=None, note=None):
+def R(id_, tier, data, events, *, base=1, socket="mixrack", chunks=None, note=None,
+      midi_strips=False):
     case = {"id": id_, "tier": tier, "dir": "rx", "socket": socket,
             "base_channel": base, "hex": hexs(data), "events": events}
+    if midi_strips:
+        # Decode channels 2-3 as MIDI Strips. Opt-in per case because on base
+        # channel 1-3 those are also the protocol's group and aux channels.
+        case["midi_strips"] = True
     if chunks:
         case["chunks"] = [hexs(c) for c in chunks]
     if note:
@@ -262,12 +267,58 @@ R("rx.sysex.unterminated_aborted_by_status", "hardware", HDR + [0x00, 0x02, 0x00
   [{"kind": "mute", "type": "input", "index": 2, "on": True}], note="status byte aborts the SysEx; nothing emitted for it")
 R("rx.sysex.foreign_ignored", "hardware", [0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7, 0x90, 0x00, 0x7F],
   [{"kind": "mute", "type": "input", "index": 1, "on": True}], note="non-A&H SysEx is dropped silently")
-R("rx.channel_mode.ignored", "hardware", [0xB0, 0x7B, 0x00, 0xB0, 0x79, 0x00, 0x90, 0x00, 0x3F],
-  [{"kind": "mute", "type": "input", "index": 1, "on": False}], note="CC 120–127 never touch NRPN state")
-R("rx.nrpn.triple_survives_ignored_between", "hardware",
-  [0xB0, 0x63, 0x00, 0x80, 0x05, 0x00, 0xB0, 0x7B, 0x00, 0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7, 0xF8, 0xB0, 0x62, 0x17, 0xB0, 0x06, 0x6B],
+# CC 0x78-0x7F is NOT MIDI channel mode on this desk. The 5 Sep 2026 session
+# assigned a SoftKey the Custom MIDI string "B0,7F,01" and it arrived on the
+# socket verbatim (§3.5), so the whole high range is ordinary user traffic and
+# has to be surfaced for triggers rather than swallowed.
+R("rx.cc.high_range_is_user_traffic", "hardware", [0xB0, 0x7B, 0x00, 0xB0, 0x79, 0x00, 0x90, 0x00, 0x3F],
+  [{"kind": "cc", "channel": 0, "cc": 0x7B, "value": 0},
+   {"kind": "cc", "channel": 0, "cc": 0x79, "value": 0},
+   {"kind": "mute", "type": "input", "index": 1, "on": False}],
+  note="CC 120–127 are user CCs, not channel mode; they carry no NRPN state but are reported")
+R("rx.softkey.custom_midi", "hardware", [0xB0, 0x7F, 0x01],
+  [{"kind": "cc", "channel": 0, "cc": 0x7F, "value": 1}],
+  note="SoftKey assigned Custom MIDI 'B0,7F,01' — five presses arrived verbatim on both clients (§3.5)")
+R("rx.app_cc.pilot_tone_lost", "hardware", [0xB0, 0x55, 0x00],
+  [{"kind": "cc", "channel": 0, "cc": 0x55, "value": 0}],
+  note="CC 85 = Pilot Tone Trigger (127 present, 0 lost). Reaches us because the desk relays every client's writes")
+
+# Contiguity. A data entry is trusted only when its select and parameter legs
+# arrived immediately before it. Messages the decoder emits nothing for are
+# transparent — they cannot come from another controller's NRPN — but anything
+# meaningful ends the run.
+R("rx.nrpn.triple_survives_transparent_between", "inferred",
+  [0xB0, 0x63, 0x00, 0x80, 0x05, 0x00, 0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7, 0xF8, 0xB0, 0x62, 0x17, 0xB0, 0x06, 0x6B],
   [{"kind": "fader", "type": "input", "index": 1, "level": 107}],
-  note="ignored messages (note off, CC 120-127, foreign SysEx, real-time) between 63 and 62 neither flush the ping nor break the triple — ONE fader event, no ping")
+  note="note off, foreign SysEx and real-time between the legs neither flush the ping nor break the run — ONE fader event, no ping. Synthetic stream, never captured: demoted from 'hardware' on 8 Sep 2026, it was tier inflation")
+R("rx.nrpn.run_broken_by_cc", "hardware",
+  [0xB0, 0x63, 0x00, 0xB0, 0x7B, 0x00, 0xB0, 0x62, 0x17, 0xB0, 0x06, 0x6B],
+  [{"kind": "fader_ping", "type": "input", "index": 1},
+   {"kind": "cc", "channel": 0, "cc": 0x7B, "value": 0}],
+  note="a real CC between the legs ends the run: the data entry is an orphan and is dropped, the bare select surfaces as a ping")
+R("rx.nrpn.orphan_data_entry_dropped", "hardware",
+  [0xB0, 0x63, 0x00, 0xB0, 0x62, 0x17, 0xB0, 0x06, 0x6B, 0x90, 0x01, 0x7F, 0xB0, 0x62, 0x17, 0xB0, 0x06, 0x40],
+  [{"kind": "fader", "type": "input", "index": 1, "level": 107},
+   {"kind": "mute", "type": "input", "index": 2, "on": True}],
+  note="THE phantom (§3.2): the desk relays another client's partial NRPN verbatim. The second 62/06 pair has no select of its own, so it is dropped instead of being combined with the stale address — that combination invented 'Input 128 → LV 107' on the desk")
+# MIDI Strips (§3.5, Firmware Reference V2.1 §10.2). The factory template's
+# default messages, confirmed on the socket. Channels 2-3 are FIXED — whether
+# they follow the Global base channel is untested — and on base channel 1 they
+# collide with the groups and aux channels, which is how a strip fader used to
+# vanish into Bank Select MSB.
+R("rx.strip.mute_key", "hardware", [0x91, 0x00, 0x7F],
+  [{"kind": "strip_key", "strip": 1, "key": "mute", "on": True}], midi_strips=True,
+  note="strip 1 mute key; same bytes as a group 1 mute on base channel 1")
+R("rx.strip.fader", "hardware", [0xB1, 0x00, 0x6B],
+  [{"kind": "strip_fader", "strip": 1, "value": 107}], midi_strips=True,
+  note="strip 1 fader, 7-bit streaming; reads as Bank Select MSB on the groups channel without the strip rule")
+R("rx.strip.rotary_pan", "hardware", [0xB2, 0x21, 0x40],
+  [{"kind": "strip_rotary", "strip": 2, "rotary": "pan", "value": 64}], midi_strips=True,
+  note="rotary Pan block starts at CC 0x20 on channel 3")
+R("rx.strip.off_by_default", "hardware", [0xB1, 0x00, 0x6B],
+  [{"kind": "unknown", "status": 0xB1, "data": [0x00, 0x6B]}],
+  note="the same bytes with strips off, base channel 12: outside the protocol window, reported as unknown rather than guessed at",
+  base=12)
 R("rx.send_level.reply", "two-impl", send_level(0, "input", 1, "mono_aux", 1, 107),
   [{"kind": "send_level", "type": "input", "index": 1, "dest_type": "mono_aux", "dest_index": 1, "level": 107}])
 R("rx.mix_assign.reply", "inferred", mix_assign(0, 1, "mono_group", 1, True),

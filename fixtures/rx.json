@@ -669,7 +669,7 @@
    "note": "non-A&H SysEx is dropped silently"
   },
   {
-   "id": "rx.channel_mode.ignored",
+   "id": "rx.cc.high_range_is_user_traffic",
    "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
@@ -677,21 +677,67 @@
    "hex": "b0 7b 00 b0 79 00 90 00 3f",
    "events": [
     {
+     "kind": "cc",
+     "channel": 0,
+     "cc": 123,
+     "value": 0
+    },
+    {
+     "kind": "cc",
+     "channel": 0,
+     "cc": 121,
+     "value": 0
+    },
+    {
      "kind": "mute",
      "type": "input",
      "index": 1,
      "on": false
     }
    ],
-   "note": "CC 120\u2013127 never touch NRPN state"
+   "note": "CC 120\u2013127 are user CCs, not channel mode; they carry no NRPN state but are reported"
   },
   {
-   "id": "rx.nrpn.triple_survives_ignored_between",
+   "id": "rx.softkey.custom_midi",
    "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
-   "hex": "b0 63 00 80 05 00 b0 7b 00 f0 7e 7f 06 01 f7 f8 b0 62 17 b0 06 6b",
+   "hex": "b0 7f 01",
+   "events": [
+    {
+     "kind": "cc",
+     "channel": 0,
+     "cc": 127,
+     "value": 1
+    }
+   ],
+   "note": "SoftKey assigned Custom MIDI 'B0,7F,01' \u2014 five presses arrived verbatim on both clients (\u00a73.5)"
+  },
+  {
+   "id": "rx.app_cc.pilot_tone_lost",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b0 55 00",
+   "events": [
+    {
+     "kind": "cc",
+     "channel": 0,
+     "cc": 85,
+     "value": 0
+    }
+   ],
+   "note": "CC 85 = Pilot Tone Trigger (127 present, 0 lost). Reaches us because the desk relays every client's writes"
+  },
+  {
+   "id": "rx.nrpn.triple_survives_transparent_between",
+   "tier": "inferred",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b0 63 00 80 05 00 f0 7e 7f 06 01 f7 f8 b0 62 17 b0 06 6b",
    "events": [
     {
      "kind": "fader",
@@ -700,7 +746,124 @@
      "level": 107
     }
    ],
-   "note": "ignored messages (note off, CC 120-127, foreign SysEx, real-time) between 63 and 62 neither flush the ping nor break the triple \u2014 ONE fader event, no ping"
+   "note": "note off, foreign SysEx and real-time between the legs neither flush the ping nor break the run \u2014 ONE fader event, no ping. Synthetic stream, never captured: demoted from 'hardware' on 8 Sep 2026, it was tier inflation"
+  },
+  {
+   "id": "rx.nrpn.run_broken_by_cc",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b0 63 00 b0 7b 00 b0 62 17 b0 06 6b",
+   "events": [
+    {
+     "kind": "fader_ping",
+     "type": "input",
+     "index": 1
+    },
+    {
+     "kind": "cc",
+     "channel": 0,
+     "cc": 123,
+     "value": 0
+    }
+   ],
+   "note": "a real CC between the legs ends the run: the data entry is an orphan and is dropped, the bare select surfaces as a ping"
+  },
+  {
+   "id": "rx.nrpn.orphan_data_entry_dropped",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b0 63 00 b0 62 17 b0 06 6b 90 01 7f b0 62 17 b0 06 40",
+   "events": [
+    {
+     "kind": "fader",
+     "type": "input",
+     "index": 1,
+     "level": 107
+    },
+    {
+     "kind": "mute",
+     "type": "input",
+     "index": 2,
+     "on": true
+    }
+   ],
+   "note": "THE phantom (\u00a73.2): the desk relays another client's partial NRPN verbatim. The second 62/06 pair has no select of its own, so it is dropped instead of being combined with the stale address \u2014 that combination invented 'Input 128 \u2192 LV 107' on the desk"
+  },
+  {
+   "id": "rx.strip.mute_key",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "91 00 7f",
+   "events": [
+    {
+     "kind": "strip_key",
+     "strip": 1,
+     "key": "mute",
+     "on": true
+    }
+   ],
+   "midi_strips": true,
+   "note": "strip 1 mute key; same bytes as a group 1 mute on base channel 1"
+  },
+  {
+   "id": "rx.strip.fader",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b1 00 6b",
+   "events": [
+    {
+     "kind": "strip_fader",
+     "strip": 1,
+     "value": 107
+    }
+   ],
+   "midi_strips": true,
+   "note": "strip 1 fader, 7-bit streaming; reads as Bank Select MSB on the groups channel without the strip rule"
+  },
+  {
+   "id": "rx.strip.rotary_pan",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b2 21 40",
+   "events": [
+    {
+     "kind": "strip_rotary",
+     "strip": 2,
+     "rotary": "pan",
+     "value": 64
+    }
+   ],
+   "midi_strips": true,
+   "note": "rotary Pan block starts at CC 0x20 on channel 3"
+  },
+  {
+   "id": "rx.strip.off_by_default",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 12,
+   "hex": "b1 00 6b",
+   "events": [
+    {
+     "kind": "unknown",
+     "status": 177,
+     "data": [
+      0,
+      107
+     ]
+    }
+   ],
+   "note": "the same bytes with strips off, base channel 12: outside the protocol window, reported as unknown rather than guessed at"
   },
   {
    "id": "rx.send_level.reply",

@@ -11,10 +11,10 @@ Sources, in order of trust:
 
 | Tier | Meaning |
 |---|---|
-| `hardware` | Observed on a real dLive (11 Aug 2026 desk, base channel 1) or proven over years of shows by the Reaper Automation Pack |
+| `hardware` | Observed on a real dLive — the 11 Aug 2026 desk (base channel 1) or the S5000 session of 4–5 Sep 2026 on firmware 2.12 — or proven over years of shows by the Reaper Automation Pack |
 | `two-impl` | Two independent implementations agree (TSteer `allenheath-dlive` v1.0.1 and Broughton `allenheath-dlive-ilive`), both derived from the A&H *MIDI Over TCP/IP Protocol V2.0* PDF |
 | `single` | One implementation / the PDF only |
-| `inferred` | Extrapolated from a pattern — must be captured on 4–5 Sept 2026 before it is trusted |
+| `inferred` | Extrapolated from a pattern, or synthesised for a test — not observed on a desk |
 
 Firmware is undetectable over this protocol (the SysEx header carries
 `01 00` on every version); the user tells us.
@@ -24,7 +24,7 @@ Firmware is undetectable over this protocol (the SysEx header carries
 | Endpoint | Plain | TLS | Owns |
 |---|---|---|---|
 | MixRack | 51325 | 51327 | Scene recall, all parameter control, Actions, Gets |
-| Surface | 51328 | 51329 | Cue-list recall, Scene Go / Next / Previous |
+| Surface | 51328 | 51329 | Cue-list recall, Scene Go / Next / Previous. Also **mirrors** desk scene recalls in the same bytes as 51325, and answers the name heartbeat. The MixRack refuses 51328. |
 
 TLS port numbers are `single` (the PDF, p.1). An earlier note in the
 dLive Utility Apps repo said 51326; that was wrong and is corrected —
@@ -197,7 +197,7 @@ Actions table is user-entered.
 Bn cc val
 ```
 
-### 3.8 Send level — `two-impl` + PDF, **dB mapping uncalibrated**
+### 3.8 Send level — `hardware`, calibrated
 ```
 F0 00 00 1A 50 10 01 00  0N 0D CH  0M DST LV  F7
 ```
@@ -205,29 +205,37 @@ F0 00 00 1A 50 10 01 00  0N 0D CH  0M DST LV  F7
 (aux / fx send / matrix / ufx send, with *its* type offset). `LV` is
 0–127.
 
-The message shape is confirmed by the PDF (p.3), Get included. What is
-*not* confirmed is the value law: the PDF describes the send's LV with
-the same words as the fader's ("-inf to +10dB = 00 to 7F"), which
-hints they share a taper without saying so, and no one has measured it.
-Sends therefore stay raw-valued until the September sweep — encoding a
-send is safe, choosing a byte for a dB value is not.
+**The send law is the fader law.** Swept over all 128 steps on firmware
+2.12 (5 Sep 2026): the send readings are identical to the fader readings
+at every step, and both sit within 0.05 dB of the published
+`LV = [(dB + 54) / 64] × 0x7F`. The long-standing "uncalibrated, keep it
+raw" caveat is discharged; dB display for sends is safe.
+
+**The source is not restricted to inputs and groups.** The PDF's heading
+names the message by its *destination* ("AUX / FX / Matrix Send Level")
+and puts no stated restriction on the source operand. Aux 1 → Matrix 1
+was confirmed on hardware — the send moved. Every published dLive module
+copies the narrower reading and omits it. Note the asymmetry with §3.9:
+the same source on an *assign* does nothing.
 
 ### 3.9 Input → mix assign (group / aux / matrix) — `two-impl`
+
+An aux source was tried on hardware and **does not work**: the `0E`
+message was accepted and relayed to the other clients, but the assign
+button did not change. Accepted-and-relayed is not applied — the relay
+proves only that the desk passed the bytes on.
 ```
 F0 <hdr> 0N 0E CH  0M DST  40|00  F7
 ```
 
-### 3.10 Preamp (by socket) — `two-impl`
+### 3.10 Preamp (by socket) — `hardware`
 ```
 En SOCK GAIN                          gain, +5…+60 dB;  GV = [(dB − 5) / 55] × 0x7F
 F0 <hdr> 0N 09 SOCK 40|00 F7          pad
 F0 <hdr> 0N 0C SOCK 40|00 F7          48 V
 ```
-Gain range is **+5…+60 dB**, settled: the PDF gives both the formula
-and a worked table over that range. The −10…+50 dB figure some tooling
-carries is iLive's, not dLive's. The PDF's table rounds inconsistently
-(sometimes up, sometimes truncated), so treat the bounds as exact and
-the byte mapping as approximate until measured.
+Gain range is **+5…+60 dB**, confirmed on hardware at GV `00` and `7F`.
+The −10…+50 dB figure some tooling carries is iLive's, not dLive's.
 
 All on the base channel `N` (no type offset). Gain rides a *pitch bend*
 status byte: the socket is the first data byte (MIDI's LSB position)
@@ -236,6 +244,9 @@ pitch bend into one 14-bit value will scramble it — handle the two
 bytes raw.
 
 ### 3.11 Name & colour — `hardware`
+
+Names are **8 characters**. Twelve were written and `ABCDEFGH` came
+back.
 ```
 F0 <hdr> 0N 01 CH F7                  get name
 F0 <hdr> 0N 03 CH <ascii…> F7         set name (7-bit ASCII; console truncates)
@@ -250,7 +261,13 @@ Bn 0C key      0 = C … 11 = B
 Bn 0D scale    0 major, 1 minor
 ```
 
-### 3.13 Gets — `single` (format) / `inferred` (reply shape)
+### 3.13 Gets — `hardware` for the shapes below
+
+Pad and 48 V answer with their **dedicated reply ops** (`08` / `0B`),
+not the generic `05 0F` form that was inferred here before. Preamp gain
+answers the PDF's `05 0B 19 <socket>` form with a pitch bend
+`En <socket> <gv>`; the inferred `05 0E` form is silent — retired.
+A burst of 300 Gets produced 300 replies with nothing dropped.
 The generic Get wraps the *message type* the reply will come back as:
 ```
 F0 <hdr> 0N 05 09 CH F7                mute        (09 = Note On)      reply: 9n CH 7F|3F
@@ -287,25 +304,51 @@ a connection fault.
 
 ## 4. Messages from the console (unsolicited) — `hardware`
 
-(Scene recall §3.4 and cue-list recall §3.5 also arrive unsolicited
-whenever an operator recalls from the console itself — the two states
-that can be mirrored with no polling at all.)
+**The console broadcasts.** On firmware 2.12, observed 5 Sep 2026 from a
+passive client that sent nothing all session: every value change reaches
+every connected client, including changes made by *other* clients. This
+replaces the polling model the module was built around.
 
-| Event on the surface | Arrives | Carries state |
+| Event | Arrives | Carries state |
 |---|---|---|
-| Mute toggled | `9n CH 7F` / `9n CH 3F` | yes |
-| Fader moved | **lone** `Bn 63 CH` — no LSB, no Data Entry | **no** — announces *which* strip only |
-| Scene recalled | `Bn 00 bank` + `Cn pc` | yes |
-| Name / colour reply | SysEx 02 / 05 | yes (solicited) |
+| Fader moved on the surface | complete triple `Bn 63 CH 62 17 06 LV`, ~16 in 0.3 s | **yes** |
+| Another client's write | that client's own bytes, relayed **verbatim** | yes |
+| Mute toggled | `9n CH 7F` / `9n CH 3F`, then the `00` terminator | yes |
+| Scene recalled at the desk | `Bn 00 bank` + `Cn pc`, on **both** 51325 and 51328 | yes |
+| Show load | the whole state — 1,747 messages in 12 s | yes |
+| Get reply | appears to reach every client, not only the asker | yes |
+| SoftKey with a Custom MIDI string | the string, verbatim (`b0 7f 01`) | no — a trigger |
+| MIDI Strip fader / key | `b1 00 v` / `91 00 v` on channels 2–3 (§4b) | no — a trigger |
 
-Global MIDI Send must be on at the console for any of this. The fader
-ping drives *query-on-ping*: coalesce pings per strip on a ~40 ms
-trailing edge, issue one fader Get per burst plus one settle Get, cap
-in-flight Gets. Whether sends / assigns / preamp changes also ping is
-open (checklist item 3). Whether our own sets are echoed back is open
-(item 8) — the state layer must be idempotent either way.
+Consequences, in order of how much they change:
 
-## 4b. MIDI Strips — `single`, unexploited
+1. **A state mirror is built from the broadcast alone.** No polling. The
+   connect-time sync survives as belt and braces, not as the mechanism.
+2. **Query-on-ping is retired.** It existed for firmware 1.94, which
+   announced a surface fader move as a lone `Bn 63 CH` with no level.
+   2.12 sent **zero** lone pings in 40,000 records, and the feature became
+   a feedback loop on it: the `63` leg of a broadcast triple fired a Get
+   whose reply's own `63` leg fired another — 2,200 Gets/s until the
+   operator intervened. The decoder still reports a bare `63` as a
+   `fader_ping`; nothing acts on it.
+3. **Relay is raw, not semantic** — see decoder rule 4. This is the one
+   that bites: another controller's *partial* NRPN arrives here missing
+   its select leg.
+4. **Changes made by a console Action are NOT broadcast.** CC 20 fired an
+   Action that muted Input 5; neither of two other clients saw anything.
+   A button that fires a console-side Toggle cannot know the result — use
+   explicit Set On / Set Off Actions, or drive the mute over MIDI, where
+   feedback matters.
+5. **The NRPN latch is console-wide, not per-client.** Client A sent
+   `b0 63 00`; client B sent `b0 62 17 b0 06 6b` with no select of its
+   own; **Input 1 moved**. The desk applied B's data entry to A's
+   selection. NRPN *writes* must therefore be serialised through one
+   socket — which is what the bridge is for. Multiple clients are fine
+   for reading; for NRPN writing they are not.
+
+Global MIDI Send must be on at the console for any of this.
+
+## 4b. MIDI Strips — `hardware`
 
 A dLive fader strip can be configured as one of 32 **MIDI Strips**,
 which transmit custom MIDI rather than controlling audio. They are
@@ -327,16 +370,32 @@ This is a whole surface-as-control-source path the module does not use
 yet: it turns physical strips into arbitrary triggers, which is exactly
 what a Companion user wants.
 
-**It also settles a recurring question: the Sel key cannot be mapped.**
-The PDF excludes it explicitly, because Sel is what selects the
-Processing screen used to configure the strip. Nothing anywhere in this
-protocol carries channel selection in either direction. Chasing
-"follow the console's selected channel" over MIDI is a dead end; if it
-is reachable at all it is in A&H's own Director/IP8 protocol.
+**It also settles a recurring question: Sel is not on MIDI.** The PDF
+excludes it from the strip controls, because Sel is what selects the
+Processing screen used to configure the strip — and on 5 Sep a clean
+listen on 51325 confirmed that pressing Sel emits nothing at all.
+Nothing in this protocol carries channel selection in either direction,
+so "follow the console's selected channel" is a dead end here. It does
+move on A&H's own Director/MixRack protocol (port 51321), which is out
+of scope for this module.
 
-Note the fixed MIDI channels: strips talk on channels 2 and 3 (`B1`,
-`B2`, `91` are 0-indexed channels 1 and 2), which may collide with a
-base channel range of N..N+4. Worth a capture before building on it.
+**Confirmed on the socket, 5 Sep 2026**: the strip mute key arrived as
+`91 00 7f` and the strip fader as `b1 00 <v>`, streaming 7-bit — the
+factory defaults above, on the network port, not just DIN/USB.
+
+`Local` off makes a strip key's LED follow **remote** messages instead of
+local presses (MIDI tally). Untested, and the only known way to light
+anything on this desk from outside.
+
+**The channel collision is real and it is silent.** Strips transmit on
+MIDI channels 2 and 3, and those numbers are fixed — whether they follow
+the Global base channel is untested, so nothing may assume they move. On
+base channel 1, channel 2 is N+1 (groups) and channel 3 is N+2 (auxes):
+`b1 00 xx` is then Bank Select MSB on the groups channel, and a protocol
+decoder swallows the strip fader without a trace. That is what happened
+in the session. The module therefore decodes channels 2–3 as strips
+*before* the protocol path sees them, and only when strip decoding is
+switched on — see decoder rule 9.
 
 ## 5. Decoder rules
 
@@ -346,34 +405,66 @@ base channel range of N..N+4. Worth a capture before building on it.
    clear it.
 3. A status byte aborts an unterminated SysEx; the SysEx accumulator is
    bounded (256 bytes) — an overrun drops the SysEx, never the stream.
-4. NRPN state **latches**, per socket *and* per MIDI channel (standard
-   MIDI; the console is believed to do the same — checklist item 6
-   measures it): after `Bn 63 CH` that channel's address stays selected
-   until the next `63` on it; `62` likewise. A `06` with both latched is
-   a complete parameter event. A `63` followed by anything other than
-   `62` is emitted as a **ping** for that channel.
-5. `Bn 78`–`7F` (channel mode) are never emitted by the module; inbound
-   they are ignored (the bridge filters transport-reset bursts for the
-   same reason — they corrupt the latch).
-6. Note On velocity ≥ 0x40 = mute on, else off. Note Off = ignore.
+4. **NRPN is trusted only in contiguous complete triples.** The latch is
+   real — the console's own, console-wide, applied across clients
+   (§4 note 5) — but a decoder must not keep one of its own across
+   messages. Because relay is raw, another controller's partial NRPN
+   arrives here verbatim, missing its select leg; combining that orphan
+   data entry with a stale address invents a value for a channel nobody
+   touched. It did exactly that on the desk, producing a phantom
+   "Input 128 → LV 107" (`rx.nrpn.orphan_data_entry_dropped`).
+
+   So: `63` starts a run, `62` continues it only if it is the very next
+   message on that channel, `06` completes it only if `62` was. A `06`
+   may repeat while the run is unbroken — that is how a fader move
+   streams. Anything else ends the run, and a `63` that is never
+   continued surfaces as a `fader_ping`, which nothing acts on (§4).
+5. `Bn 78`–`7F` is **not** MIDI channel mode here. A SoftKey assigned the
+   Custom MIDI string `B0,7F,01` put exactly those bytes on the socket
+   (§4), so the whole high range is ordinary user traffic. Inbound it is
+   reported as a `cc` event for triggers; the module never sends it.
+6. Note On velocity ≥ 0x40 = mute on, else off. Note Off = ignore, and
+   Note On velocity 0 = ignore — the console writes its mutes as a pair
+   (`9N CH 7F`, `9N CH 00`), so reading the terminator as a mute-off
+   makes every desk mute arrive as on-then-immediately-off.
 7. Channel → type is resolved with the configured base channel; a
    voice message on a MIDI channel outside `N..N+4`, or on an address
-   in a gap of the §2 table, is passed through as `unknown`. CC on the
-   base channel that is not NRPN/Bank Select (Actions, UFX, Go/Next/Prev
-   echoes) and Program Change / pitch bend off the base channel are
-   `unknown` too.
-8. **Ignored messages are transparent**: real-time bytes, Note Off,
-   channel-mode CCs and non-A&H SysEx neither flush a pending ping nor
-   break an NRPN triple in progress (`rx.nrpn.triple_survives_ignored_between`).
-9. The decoder is one-directional. SysEx op `05` means *Reply Colour*
+   in a gap of the §2 table, is passed through as `unknown`. A CC on a
+   protocol channel that is not NRPN or Bank Select — an Action echo,
+   UFX, Go/Next/Previous, a SoftKey string, one of our own apps
+   signalling (§7) — is reported as `cc` rather than dropped.
+8. **Transparent messages** — Note Off, the velocity-0 mute terminator,
+   non-A&H SysEx, and real-time bytes — neither flush a pending ping nor
+   break an NRPN run (`rx.nrpn.triple_survives_transparent_between`).
+   They are the only exceptions to rule 4, and they are safe ones: none
+   of them can carry another controller's NRPN. Refusing them too would
+   drop real fader moves whenever a mute pair lands mid-triple, which on
+   a broadcast desk is ordinary traffic.
+9. **MIDI Strip traffic is claimed before the protocol path** when strip
+   decoding is on: `9n`/`Bn` on MIDI channels 2–3 decode as strips (§4b)
+   and never as groups or auxes. Off by default, because on base channel
+   1–3 the two readings are genuinely ambiguous and the protocol one is
+   what an operator without MIDI Strips expects.
+10. The decoder is one-directional. SysEx op `05` means *Reply Colour*
    coming from the console and *Get* going to it, so a tap that sees
    both directions through one parser cannot tell `00 05 09 00` (colour
    reply, input 10, off) from `00 05 09 00` (Get mute, input 1). Parse
    each direction with its own instance.
-10. On the Surface socket a cue-list recall (§3.5) is byte-identical to
+11. On the Surface socket a cue-list recall (§3.5) is byte-identical to
     a scene recall and decodes as `scene` — a listener on 51328 must
     label accordingly. Whether the Surface pushes anything at all is
     checklist item 7.
+
+## 5b. Our own apps' control changes
+
+Ordinary user CCs on the base channel, meaningless to the console, which
+reach us only because the desk relays every client's writes (§4). Listed
+so nothing else in the family claims the same number.
+
+| CC | App | 127 | 0 |
+|---|---|---|---|
+| 85 | Pilot Tone Trigger | tone present | tone lost |
+| 86 | Talk Light Trigger | talking | clear |
 
 ## 6. Liveness
 

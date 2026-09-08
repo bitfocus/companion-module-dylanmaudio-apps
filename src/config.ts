@@ -41,7 +41,6 @@ export type ModuleConfig = {
 	sendsInDb: boolean
 	preampGainRange: PreampGainRange
 	inFlight: number
-	pingCoalesceMs: number
 	pollIntervalMs: number
 	debugEvents: boolean
 }
@@ -73,7 +72,6 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	sendsInDb: false,
 	preampGainRange: 'spec',
 	inFlight: 8,
-	pingCoalesceMs: 40,
 	pollIntervalMs: 50,
 	debugEvents: false,
 }
@@ -88,7 +86,6 @@ export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): 
 	c.baseChannel = clampInt(c.baseChannel, 1, 12, 12)
 	c.inputs = clampInt(c.inputs, 1, 128, 128)
 	c.inFlight = clampInt(c.inFlight, 1, 32, 8)
-	c.pingCoalesceMs = clampInt(c.pingCoalesceMs, 0, 500, 40)
 	c.pollIntervalMs = clampInt(c.pollIntervalMs, 10, 2000, 50)
 	for (const k of ['goCc', 'goValue', 'nextCc', 'nextValue', 'prevCc', 'prevValue'] as const)
 		c[k] = clampInt(c[k], 0, 127, 0)

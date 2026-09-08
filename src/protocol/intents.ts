@@ -113,7 +113,21 @@ export type ConsoleEvent =
 	| { kind: 'preamp_gain'; bank: SocketBank; socket: number; value: number }
 	| { kind: 'preamp_pad'; bank: SocketBank; socket: number; on: boolean }
 	| { kind: 'preamp_48v'; bank: SocketBank; socket: number; on: boolean }
+	/**
+	 * A control change on a protocol channel that is not channel state: an
+	 * Action echo, Scene Go/Next/Previous, a SoftKey's Custom MIDI string, or
+	 * one of our own apps signalling (see APP_CC). Surfaced so a controller
+	 * above can trigger on it.
+	 */
+	| { kind: 'cc'; channel: number; cc: number; value: number }
+	/** MIDI Strip traffic — see the strip tables in decode.ts */
+	| { kind: 'strip_fader'; strip: number; value: number }
+	| { kind: 'strip_key'; strip: number; key: StripKey; on: boolean }
+	| { kind: 'strip_rotary'; strip: number; rotary: StripRotary; value: number }
 	| { kind: 'unknown'; status: number; data: number[] }
+
+export type StripKey = 'mute' | 'mix' | 'pafl'
+export type StripRotary = 'gain' | 'pan' | 'custom1' | 'custom2'
 
 export type ConsoleEventKind = ConsoleEvent['kind']
 

@@ -5,12 +5,26 @@
  * TCP hands us arbitrary chunks, so this is a byte-at-a-time state machine
  * with two layers: a raw MIDI parser (running status, real-time bytes
  * anywhere, SysEx across chunks, bounded accumulator) and a semantic layer
- * on top that owns the NRPN latch and turns a lone `63` into a fader ping.
+ * on top that assembles NRPN triples and reads the console's broadcast.
  *
- * The decoder is pure: no timers. A lone ping only becomes visible when the
- * next message arrives or when `flush()` is called — the transport calls
- * flush() a few milliseconds after each chunk so a ping never waits on the
- * next unrelated message.
+ * **The console broadcasts, and it relays raw.** Every client sees every
+ * other client's writes, and it sees them as the *bytes that client sent* —
+ * not as a re-encoded message (session 5 Sep 2026, §3.2). A partial NRPN
+ * from another controller therefore arrives here verbatim, missing its
+ * select leg. A decoder that keeps a latch across messages will combine that
+ * orphan data entry with its own stale address and invent a value for a
+ * channel nobody touched; that is exactly what happened on the desk, and it
+ * produced a phantom "Input 128 → LV 107".
+ *
+ * So the rule is **contiguity**: a data entry counts only when its `63`
+ * select and `62` parameter arrived as the immediately preceding messages,
+ * with nothing in between. Any other message — any kind, any channel —
+ * abandons the sequence. This also happens to agree with the desk when two
+ * clients interleave: on 2.12 the console applied client B's data entry to
+ * client A's selection (§3.4), and those legs are contiguous on the wire.
+ *
+ * The decoder is pure: no timers. A lone `63` only becomes visible as a ping
+ * when the next message arrives or when `flush()` is called.
  */
 
 import { colourFromByte, resolveAddress, resolveSocket, type ChannelRef } from './channels.js'
@@ -28,6 +42,27 @@ import {
 import { PARAM_FADER, type ConsoleEvent } from './intents.js'
 
 const VOICE_LEN: Record<number, number> = { 0x80: 2, 0x90: 2, 0xa0: 2, 0xb0: 2, 0xc0: 1, 0xd0: 1, 0xe0: 2 }
+/** The three CCs that may continue an NRPN run: select, parameter, data entry. */
+const NRPN_LEGS = new Set([0x63, 0x62, 0x06])
+/**
+ * MIDI Strips — the factory template's default messages (Firmware Reference
+ * V2.1 §10.2, confirmed on the socket 5 Sep 2026 §3.5). Channel numbers here
+ * are MIDI channels 2 and 3 as `n` (zero-based), and they are FIXED: whether
+ * they follow the Global base channel is untested, so the module must not
+ * assume they move with it.
+ *
+ * Keys (`9n`, channel 2):   note 0x00–0x1F mute, 0x20–0x3F mix, 0x40–0x5F PAFL
+ * Fader (`Bn`, channel 2):  cc   0x00–0x1F
+ * Rotaries (`Bn`, ch 3):    cc   0x00–0x1F gain, 0x20–0x3F pan,
+ *                                0x40–0x5F custom 1, 0x60–0x7F custom 2
+ *
+ * All of it is user-editable per strip, so this decodes the factory defaults
+ * only — a rig that has retyped the strings will not match, by design.
+ */
+const STRIP_CH_KEYS = 1
+const STRIP_CH_ROTARY = 2
+const STRIP_KEYS = ['mute', 'mix', 'pafl'] as const
+const STRIP_ROTARIES = ['gain', 'pan', 'custom1', 'custom2'] as const
 const COMMON_LEN: Record<number, number> = { 0xf1: 1, 0xf2: 2, 0xf3: 1, 0xf6: 0 }
 export const SYSEX_MAX = 256
 
@@ -127,19 +162,43 @@ export class MidiParser {
 	}
 }
 
-interface NrpnLatch {
-	msb: number | null
+/**
+ * An NRPN triple being assembled. Exists only while the run is unbroken: see
+ * the contiguity rule in this file's header.
+ */
+interface NrpnRun {
+	n: number
+	msb: number
 	lsb: number | null
+	/** true once a data entry has been decoded, so repeats on the same run still count */
+	complete: boolean
+}
+
+export interface DecoderOptions {
+	/**
+	 * Decode MIDI channels 2 and 3 as MIDI Strip traffic (§3.5). Off by
+	 * default because it is a console-side feature the operator has to set up,
+	 * and because on base channel 1–3 those channels are also the group and
+	 * aux channels of the protocol table — see `stripsShadowProtocol()`.
+	 */
+	midiStrips?: boolean
 }
 
 export class DliveDecoder {
 	private readonly parser = new MidiParser()
-	private readonly latch: NrpnLatch[] = Array.from({ length: 16 }, () => ({ msb: null, lsb: null }))
 	private readonly bank: number[] = new Array<number>(16).fill(0)
+	/** the NRPN run in progress, or null if the last message broke it */
+	private nrpn: NrpnRun | null = null
 	/** a `63` that has not yet been followed by `62` — a fader ping in waiting */
 	private pendingPing: { n: number; addr: number } | null = null
+	private readonly midiStrips: boolean
 
-	constructor(public baseN: number) {}
+	constructor(
+		public baseN: number,
+		opts: DecoderOptions = {},
+	) {
+		this.midiStrips = opts.midiStrips ?? false
+	}
 
 	get sysexOverruns(): number {
 		return this.parser.sysexOverruns
@@ -170,6 +229,33 @@ export class DliveDecoder {
 	private message(m: RawMessage, out: ConsoleEvent[]): void {
 		const hi = m.status & 0xf0
 		const n = m.status & 0x0f
+
+		// Contiguity (see header). Only the three NRPN legs continue a run, and
+		// only messages this decoder emits *nothing* for are transparent to it:
+		// a note off, the velocity-0 terminator of a mute pair, a foreign SysEx.
+		// (Real-time bytes never reach here — the parser drops them.) Anything
+		// that carries meaning ends the run, so the next data entry has to bring
+		// its own select rather than borrowing a stale one.
+		//
+		// The report's wording is stricter — "only trust contiguous complete
+		// triples" — but the failure it describes is an *orphan* data entry, and
+		// admitting these three no-ops cannot manufacture one: none of them can
+		// come from another controller's NRPN. Refusing them instead would drop
+		// real fader moves whenever a mute pair lands mid-triple, which on a
+		// broadcast desk is ordinary traffic.
+		const transparent = hi === 0x80 || (hi === 0x90 && m.data[1] === 0) || (m.status === 0xf0 && !isAhSysex(m.data))
+		if (!transparent && !(hi === 0xb0 && NRPN_LEGS.has(m.data[0]))) this.nrpn = null
+
+		// MIDI Strips transmit on channels 2 and 3, which on base channel 1–3
+		// are also protocol channels. They are decoded first and unconditionally
+		// (§3.5): a strip fader is `b1 00 <v>`, indistinguishable from Bank
+		// Select MSB on the groups channel, and silently swallowed by the
+		// protocol path.
+		if (this.midiStrips && (n === STRIP_CH_KEYS || n === STRIP_CH_ROTARY)) {
+			this.flushPing(out)
+			this.strip(hi, n, m.data, out)
+			return
+		}
 
 		if (m.status === 0xf0) {
 			if (!isAhSysex(m.data)) return // foreign SysEx: ignored, transparent to a pending ping
@@ -228,27 +314,34 @@ export class DliveDecoder {
 			out.push({ kind: 'unknown', status: 0xb0 | n, data: [cc, value] })
 			return
 		}
-		const latch = this.latch[n]
 		switch (cc) {
-			case 0x63: // NRPN MSB = channel address
+			case 0x63: // NRPN MSB = channel address — starts a run
 				this.flushPing(out)
-				latch.msb = value
-				latch.lsb = null
+				this.nrpn = { n, msb: value, lsb: null, complete: false }
 				this.pendingPing = { n, addr: value }
 				return
 			case 0x62: // NRPN LSB = parameter
 				if (this.pendingPing && this.pendingPing.n === n) this.pendingPing = null
 				else this.flushPing(out)
-				latch.lsb = value
+				// Only valid directly after this channel's own select. An orphan
+				// `62` is another controller's relayed partial (§3.2): drop it.
+				if (this.nrpn && this.nrpn.n === n && this.nrpn.lsb === null) this.nrpn.lsb = value
+				else this.nrpn = null
 				return
 			case 0x06: {
-				// Data Entry MSB
+				// Data Entry MSB — completes the triple, and may repeat while the
+				// run is unbroken (the desk streams a fader move that way).
 				if (this.pendingPing && this.pendingPing.n === n) this.pendingPing = null
 				else this.flushPing(out)
-				if (latch.msb === null || latch.lsb === null) return
-				const ref = resolveAddress(this.baseN, n, latch.msb)
+				const run = this.nrpn
+				if (!run || run.n !== n || run.lsb === null) {
+					this.nrpn = null
+					return
+				}
+				run.complete = true
+				const ref = resolveAddress(this.baseN, n, run.msb)
 				if (!ref) return
-				this.param(ref, latch.lsb, value, out)
+				this.param(ref, run.lsb, value, out)
 				return
 			}
 			case 0x00: // Bank Select MSB
@@ -259,11 +352,44 @@ export class DliveDecoder {
 				this.flushPing(out)
 				return
 			default:
-				if (cc >= 0x78) return // channel mode: ignored, never touches the latch or a pending ping
 				this.flushPing(out)
-				// any other CC on a known channel (Actions echo, UFX, Go/Next/Prev) — not state
+				// Everything else on a protocol channel: Actions echo, UFX, Scene
+				// Go/Next/Prev, a SoftKey's Custom MIDI string, one of our own
+				// apps' signalling CCs. None of it is channel state, but a
+				// controller above us can trigger on it, so it is surfaced rather
+				// than dropped. Note the range 0x78–0x7F is NOT treated as MIDI
+				// channel mode: the desk's own SoftKey example is `B0 7F 01`
+				// (session §3.5), which a channel-mode reading would swallow.
+				out.push({ kind: 'cc', channel: n, cc, value })
 				return
 		}
+	}
+
+	/**
+	 * Channels 2–3 as MIDI Strips. Anything outside the factory ranges is
+	 * reported as `unknown` rather than guessed at — a rig with custom strings
+	 * should look unrecognised, not mis-attributed to strip 1.
+	 */
+	private strip(hi: number, n: number, data: number[], out: ConsoleEvent[]): void {
+		const [a, b] = data
+		if (hi === 0x90 && n === STRIP_CH_KEYS) {
+			if (b === 0) return // note-off terminator, as with console mutes
+			const key = STRIP_KEYS[a >> 5]
+			if (key) out.push({ kind: 'strip_key', strip: (a & 0x1f) + 1, key, on: b >= 0x40 })
+			else out.push({ kind: 'unknown', status: hi | n, data: [...data] })
+			return
+		}
+		if (hi === 0xb0 && n === STRIP_CH_KEYS) {
+			if (a <= 0x1f) out.push({ kind: 'strip_fader', strip: a + 1, value: b })
+			else out.push({ kind: 'unknown', status: hi | n, data: [...data] })
+			return
+		}
+		if (hi === 0xb0 && n === STRIP_CH_ROTARY) {
+			out.push({ kind: 'strip_rotary', strip: (a & 0x1f) + 1, rotary: STRIP_ROTARIES[a >> 5], value: b })
+			return
+		}
+		if (hi === 0x80) return
+		out.push({ kind: 'unknown', status: hi | n, data: [...data] })
 	}
 
 	private param(ref: ChannelRef, param: number, value: number, out: ConsoleEvent[]): void {

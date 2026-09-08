@@ -29,6 +29,7 @@ interface RxCase {
 	base_channel: number
 	hex: string
 	chunks?: string[]
+	midi_strips?: boolean
 	events: unknown[]
 }
 
@@ -48,7 +49,7 @@ describe('rx fixtures → decode()', () => {
 	it('has cases', () => expect(rx.cases.length).toBeGreaterThan(30))
 	for (const c of rx.cases) {
 		it(`${c.id} [${c.tier}]`, () => {
-			const dec = new DliveDecoder(c.base_channel - 1)
+			const dec = new DliveDecoder(c.base_channel - 1, { midiStrips: c.midi_strips })
 			const chunks = c.chunks ? c.chunks.map(fromHex) : [fromHex(c.hex)]
 			if (c.chunks) expect(chunks.flat()).toEqual(fromHex(c.hex))
 			const events = chunks.flatMap((ch) => dec.feed(ch)).concat(dec.flush())
@@ -57,7 +58,7 @@ describe('rx fixtures → decode()', () => {
 	}
 	it('every rx case decodes identically byte-at-a-time', () => {
 		for (const c of rx.cases) {
-			const dec = new DliveDecoder(c.base_channel - 1)
+			const dec = new DliveDecoder(c.base_channel - 1, { midiStrips: c.midi_strips })
 			const events = fromHex(c.hex)
 				.flatMap((b) => dec.feed([b]))
 				.concat(dec.flush())

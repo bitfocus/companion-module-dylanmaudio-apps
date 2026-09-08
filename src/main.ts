@@ -47,6 +47,7 @@ import {
 import { uploadPageHtml } from './showfile/uploadpage.js'
 import { lvToDb } from './protocol/levels.js'
 import type { ConsoleEvent } from './protocol/intents.js'
+import { describeAppCc } from './protocol/appcc.js'
 
 export type ModuleSchema = {
 	config: ModuleConfig
@@ -117,7 +118,6 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		} else if (this.link instanceof ConsoleLink) {
 			Object.assign(this.link.scheduler.opts, {
 				inFlight: this.config.inFlight,
-				pingCoalesceMs: this.config.pingCoalesceMs,
 				pollIntervalMs: this.config.pollIntervalMs,
 			})
 			this.link.opts.syncScope = this.config.syncScope
@@ -231,7 +231,6 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 			stripCounts: stripCountsFor({ inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }),
 			scheduler: {
 				inFlight: this.config.inFlight,
-				pingCoalesceMs: this.config.pingCoalesceMs,
 				pollIntervalMs: this.config.pollIntervalMs,
 			},
 		}
@@ -320,6 +319,13 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	}
 
 	private onEvent(ev: ConsoleEvent): void {
+		// One of our own apps signalling through the desk: Pilot Tone Trigger and
+		// Talk Light Trigger write a CC that the console relays to every client,
+		// so this arrives without either app knowing Companion is here.
+		if (ev.kind === 'cc') {
+			const app = describeAppCc(ev.cc, ev.value)
+			if (app) this.log('info', app)
+		}
 		if (this.config.debugEvents) this.log('debug', `← ${JSON.stringify(ev)}`)
 		if (!this.recording) return
 		// Action Recorder: surface moves become actions; a fader sweep collapses to its final value

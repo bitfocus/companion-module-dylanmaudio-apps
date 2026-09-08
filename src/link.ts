@@ -62,7 +62,7 @@ export class ConsoleLink extends EventEmitter<LinkEvents> implements LinkApi {
 		Pick<LinkOptions, 'probeIntervalMs' | 'probeTimeoutMs' | 'probeMisses' | 'syncScope' | 'tickMs' | 'pingFlushMs'>
 	> &
 		LinkOptions
-	public stats = { bytesIn: 0, bytesOut: 0, messagesOut: 0, unknownEvents: 0 }
+	public stats = { bytesIn: 0, bytesOut: 0, messagesOut: 0, unknownEvents: 0, faderPings: 0 }
 
 	constructor(
 		public transport: ConsoleTransport,
@@ -253,16 +253,23 @@ export class ConsoleLink extends EventEmitter<LinkEvents> implements LinkApi {
 		if (events.length === 0) return
 		const changed: string[] = []
 		const replied: string[] = []
-		const now = this.now()
 		for (const ev of events) {
 			this.emit('event', ev, role)
 			if (ev.kind === 'unknown') {
 				this.stats.unknownEvents++
 				continue
 			}
+			// A lone `63` with no level. Firmware 2.12 never sends one — it
+			// broadcasts complete triples — and asking for the level on sight of
+			// one is what looped the show machine at 2,200 Gets/s (session
+			// §3.10). Counted so an older desk that really does ping is visible
+			// in diagnostics, but never acted on.
 			if (ev.kind === 'fader_ping') {
-				this.scheduler.onPing(ev, now)
+				this.stats.faderPings++
 				continue
+			}
+			if (ev.kind === 'cc' || ev.kind === 'strip_fader' || ev.kind === 'strip_key' || ev.kind === 'strip_rotary') {
+				continue // triggers for the layer above; not channel state
 			}
 			if (
 				ev.kind === 'name' &&

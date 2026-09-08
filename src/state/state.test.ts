@@ -120,23 +120,6 @@ describe('QueryScheduler', () => {
 		s.tick(0)
 		expect(sent[0]).toEqual(getFader(2))
 	})
-	it('coalesces a burst of pings into one Get plus a settle Get', () => {
-		const { s, sent } = make()
-		const ref = { type: 'input' as const, index: 7 }
-		for (let t = 0; t < 100; t += 10) {
-			s.onPing(ref, t)
-			s.tick(t)
-		}
-		expect(sent).toHaveLength(0) // still inside the trailing edge
-		s.tick(130)
-		expect(sent).toHaveLength(1)
-		s.onReplyPaths(['fader/input/7'])
-		s.tick(200)
-		expect(sent).toHaveLength(1)
-		s.tick(331)
-		expect(sent).toHaveLength(2) // settle
-		expect(s.stats.coalescedPings).toBe(9)
-	})
 	it('backs off an op after consecutive misses and logs once', () => {
 		const { s, sent, logs } = make()
 		const get: Intent = { op: 'get_preamp_gain', bank: 'mixrack', socket: 1 }

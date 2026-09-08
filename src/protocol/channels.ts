@@ -68,10 +68,22 @@ export const SEND_DESTINATION_TYPES: readonly ChannelType[] = [
 ]
 
 /** Types that can be the source of a send level (§3.8). */
+/**
+ * Sources of a send level. The spec's heading names the message by its
+ * *destination* ("AUX / FX / Matrix Send Level") and puts no stated
+ * restriction on the source operand, and on 5 Sep 2026 an aux source was
+ * confirmed on hardware: Aux 1 → Matrix 1 moved the send (§3.7). Every
+ * published dLive module copies the narrower reading and omits it.
+ *
+ * Note the asymmetry — aux → matrix *assign* was accepted and relayed but
+ * changed nothing, so aux is deliberately NOT in MIX_ASSIGN source use.
+ */
 export const SEND_SOURCE_TYPES: readonly ChannelType[] = [
 	'input',
 	'mono_group',
 	'stereo_group',
+	'mono_aux',
+	'stereo_aux',
 	'fx_return',
 	'ufx_return',
 ]

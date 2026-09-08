@@ -12,8 +12,6 @@
  *     misses for the same op mark that op unsupported for `backoffMs`
  *     (an `inferred` Get the firmware ignores degrades to "no feedback",
  *     not to a connection fault);
- *   - fader pings coalesce per strip on a trailing edge (one Get per burst)
- *     plus a settle Get after the burst ends;
  *   - background polling only touches paths somebody is watching and only
  *     the parameters the desk never announces, round-robin, one per
  *     `pollIntervalMs` when nothing more urgent is queued.
@@ -21,20 +19,24 @@
  * No timers of its own: the owner calls `tick(now)` (every ~10 ms) and
  * `onReplyPaths()` as events arrive. Pure enough to unit-test with a fake
  * clock.
+ *
+ * **Query-on-ping is gone (session 5 Sep 2026, §3.10).** It existed because
+ * firmware 1.94 announced a surface fader move as a lone `63` with no level,
+ * so the only way to learn the value was to ask. On 2.12 the console
+ * broadcasts complete triples — zero lone pings in 40,000 records — and the
+ * feature became a feedback loop: the `63` leg of a broadcast triple fired a
+ * Get whose reply's own `63` leg fired another, 2,200 Gets/s until the
+ * operator intervened. If an older firmware is ever shown to send bare pings
+ * again, this comes back behind a firmware setting, off by default.
  */
 
 import type { Intent, IntentOp } from '../protocol/intents.js'
-import type { ChannelRef } from '../protocol/channels.js'
-import { channelKey } from '../protocol/channels.js'
-import { faderPath } from './model.js'
 
 export type Priority = 'high' | 'normal' | 'low'
 
 export interface SchedulerOptions {
 	inFlight: number
 	replyTimeoutMs: number
-	pingCoalesceMs: number
-	settleMs: number
 	pollIntervalMs: number
 	backoffMs: number
 	missesToBackOff: number
@@ -43,8 +45,6 @@ export interface SchedulerOptions {
 export const DEFAULT_SCHEDULER_OPTIONS: SchedulerOptions = {
 	inFlight: 8,
 	replyTimeoutMs: 500,
-	pingCoalesceMs: 40,
-	settleMs: 250,
 	pollIntervalMs: 50,
 	backoffMs: 60_000,
 	missesToBackOff: 3,
@@ -75,7 +75,6 @@ export class QueryScheduler {
 	private readonly pending = new Map<string, Pending>()
 	private readonly misses = new Map<IntentOp, number>()
 	private readonly backedOff = new Map<IntentOp, number>()
-	private readonly pings = new Map<string, { ref: ChannelRef; due: number; settleDue: number | null }>()
 	private pollProvider: (() => PollTarget[]) | null = null
 	private pollRota: PollTarget[] = []
 	private pollIndex = 0
@@ -84,7 +83,7 @@ export class QueryScheduler {
 	private nextPollAt = 0
 	private enabled = false
 
-	public stats = { sent: 0, replied: 0, missed: 0, coalescedPings: 0 }
+	public stats = { sent: 0, replied: 0, missed: 0 }
 
 	constructor(
 		private readonly send: (intent: Intent) => void,
@@ -101,7 +100,6 @@ export class QueryScheduler {
 			this.queue = []
 			this.queued.clear()
 			this.pending.clear()
-			this.pings.clear()
 		}
 	}
 
@@ -158,20 +156,6 @@ export class QueryScheduler {
 			.map((x) => x.q)
 	}
 
-	/** The desk said a fader moved but not where to. */
-	onPing(ref: ChannelRef, now: number): void {
-		if (!this.enabled) return
-		const key = channelKey(ref)
-		const existing = this.pings.get(key)
-		if (existing) {
-			this.stats.coalescedPings++
-			existing.due = now + this.opts.pingCoalesceMs
-			existing.settleDue = null
-		} else {
-			this.pings.set(key, { ref, due: now + this.opts.pingCoalesceMs, settleDue: null })
-		}
-	}
-
 	/** Events arrived for these paths (changed or not). Resolves matching in-flight Gets. */
 	onReplyPaths(paths: Iterable<string>): void {
 		for (const p of paths) {
@@ -191,36 +175,11 @@ export class QueryScheduler {
 		return this.queue.length
 	}
 
-	/** Advance: fire coalesced pings, time out misses, send from the queue, background-poll. */
+	/** Advance: time out misses, send from the queue, background-poll. */
 	tick(now: number): void {
 		if (!this.enabled) return
 
-		// 1. pings whose trailing edge has passed → fader Get (+ settle Get later)
-		for (const [key, p] of this.pings) {
-			if (p.settleDue === null && now >= p.due) {
-				this.request(
-					{
-						intent: { op: 'get_fader', type: p.ref.type, index: p.ref.index },
-						path: faderPath(p.ref),
-						priority: 'high',
-					},
-					now,
-				)
-				p.settleDue = now + this.opts.settleMs
-			} else if (p.settleDue !== null && now >= p.settleDue) {
-				this.request(
-					{
-						intent: { op: 'get_fader', type: p.ref.type, index: p.ref.index },
-						path: faderPath(p.ref),
-						priority: 'normal',
-					},
-					now,
-				)
-				this.pings.delete(key)
-			}
-		}
-
-		// 2. misses
+		// 1. misses
 		for (const [path, pend] of this.pending) {
 			if (now - pend.sentAt < this.opts.replyTimeoutMs) continue
 			this.pending.delete(path)
@@ -241,14 +200,14 @@ export class QueryScheduler {
 			}
 		}
 
-		// 3. send from the queue while the window has room
+		// 2. send from the queue while the window has room
 		while (this.pending.size < this.opts.inFlight && this.queue.length > 0) {
 			const req = this.queue.shift() as QueryRequest
 			this.queued.delete(req.path)
 			this.dispatch(req, now)
 		}
 
-		// 4. background poll when idle
+		// 3. background poll when idle
 		if (this.pending.size < this.opts.inFlight && this.queue.length === 0 && now >= this.nextPollAt) {
 			const target = this.nextPollTarget(now)
 			if (target) {

@@ -154,7 +154,13 @@ export class ConsoleState {
 				s.level = ev.level
 				return [faderPath(ev)]
 			}
+			// Events, not channel state: a ping carries no value, and CC / strip
+			// traffic belongs to whatever is triggering on it, not to the mirror.
 			case 'fader_ping':
+			case 'cc':
+			case 'strip_fader':
+			case 'strip_key':
+			case 'strip_rotary':
 				return []
 			case 'name': {
 				const s = this.strip(ev)
@@ -279,6 +285,10 @@ export function eventPaths(ev: ConsoleEvent): string[] {
 		case 'fader':
 			return [faderPath(ev)]
 		case 'fader_ping':
+		case 'cc':
+		case 'strip_fader':
+		case 'strip_key':
+		case 'strip_rotary':
 			return []
 		case 'name':
 			return [namePath(ev)]

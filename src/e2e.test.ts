@@ -231,17 +231,30 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 		await waitFor(() => fb.value === false, 2000, 'mute feedback off')
 	})
 
-	it('a fader moved on the surface pings → one Get → level lands in variables and a value feedback', async () => {
+	it('a broadcast fader triple lands in variables and a value feedback, costing no Gets', async () => {
 		await idle(inst)
 		const fb = host.place('fb-fader5', 'fader_db', { type: 'input', index: 5 })
 		const sentBefore = inst.link.scheduler.stats.sent
-		sim.cmd('fader input 5 95')
-		await waitFor(() => host.variables['fader_lv_ch5'] === 95, 3000, 'fader ping → get → reply')
+		// Firmware 2.12 broadcasts the complete triple (session §3.2). This sim
+		// still models 1.94 and only pings on `fader`, so the triple is played in
+		// by hand: 63 = select input 12, 62 = parameter 0x17 (fader), 06 = level.
+		sim.cmd('cc 99 4')
+		sim.cmd('cc 98 23')
+		sim.cmd('cc 6 95')
+		await waitFor(() => host.variables['fader_lv_ch5'] === 95, 3000, 'broadcast triple')
 		expect(host.variables['fader_ch5']).toBe('-6.1')
 		expect(fb.value).toBe(-6.1)
-		await waitFor(() => inst.link.scheduler.stats.sent - sentBefore >= 2, 2000, 'settle get')
 		await new Promise((r) => setTimeout(r, 300))
-		expect(inst.link.scheduler.stats.sent - sentBefore).toBe(2) // ping get + settle get, nothing else
+		expect(inst.link.scheduler.stats.sent - sentBefore).toBe(0)
+	})
+
+	it('a bare select is never answered — query-on-ping is retired', async () => {
+		await idle(inst)
+		const sentBefore = inst.link.scheduler.stats.sent
+		sim.cmd('fader input 5 95') // this sim answers a surface move with a lone ping
+		await new Promise((r) => setTimeout(r, 400))
+		expect(inst.link.stats.faderPings).toBeGreaterThan(0)
+		expect(inst.link.scheduler.stats.sent - sentBefore).toBe(0)
 	})
 
 	it('timed fade reaches the target and is emit-on-change', async () => {

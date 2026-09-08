@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConsoleLink } from './link.js'
 import { FakeTransport } from './transport/transport.js'
-import { encode, toHex } from './protocol/encode.js'
+import { encode } from './protocol/encode.js'
 import { faderPath } from './state/model.js'
 
 const HDR = [0xf0, 0x00, 0x00, 0x1a, 0x50, 0x10, 0x01, 0x00]
@@ -63,20 +63,44 @@ describe('ConsoleLink', () => {
 		expect(link.statusMessage).toMatch(/Global MIDI Receive/)
 	})
 
-	it('query-on-ping: a fader ping becomes one Get, the reply updates state and feedback paths', () => {
+	it('a broadcast fader triple lands in state and feedback paths without asking for anything', () => {
 		t.connect()
 		t.receive(nameReply(0, 0, 'Kick'))
 		vi.advanceTimersByTime(50)
 		t.sent.length = 0
-		t.receive([0xb0, 0x63, 0x0b]) // input 12 moved
-		vi.advanceTimersByTime(10) // ping flush timer fires
-		vi.advanceTimersByTime(60) // coalesce window
-		expect(t.sent.map((s) => toHex(s.bytes))).toEqual([toHex(encode(0, { op: 'get_fader', type: 'input', index: 12 }))])
+		// What firmware 2.12 actually sends when a fader moves on the surface, or
+		// when any other client moves one: the complete triple, not a bare ping.
 		t.receive([0xb0, 0x63, 0x0b, 0xb0, 0x62, 0x17, 0xb0, 0x06, 0x6b])
-		vi.advanceTimersByTime(10)
+		vi.advanceTimersByTime(80)
 		expect(link.state.strip({ type: 'input', index: 12 }).level).toBe(0x6b)
 		expect(changes.flat()).toContain(faderPath({ type: 'input', index: 12 }))
-		expect(link.scheduler.stats.replied).toBe(1)
+		expect(t.sent).toHaveLength(0) // no Get: query-on-ping is retired
+	})
+
+	it('a bare select is counted, never answered — that loop cost a show machine 2,200 Gets/s', () => {
+		t.connect()
+		t.receive(nameReply(0, 0, 'Kick'))
+		vi.advanceTimersByTime(50)
+		t.sent.length = 0
+		t.receive([0xb0, 0x63, 0x0b]) // a lone `63`, as firmware 1.94 sent
+		vi.advanceTimersByTime(80)
+		expect(link.stats.faderPings).toBe(1)
+		expect(t.sent).toHaveLength(0)
+	})
+
+	it('drops an orphan data entry instead of pairing it with a stale address', () => {
+		t.connect()
+		t.receive(nameReply(0, 0, 'Kick'))
+		vi.advanceTimersByTime(50)
+		changes.length = 0
+		t.receive([0xb0, 0x63, 0x0b, 0xb0, 0x62, 0x17, 0xb0, 0x06, 0x6b])
+		vi.advanceTimersByTime(20)
+		// Another controller's partial NRPN, relayed verbatim by the desk. Pairing
+		// it with the address still latched from the triple above is what invented
+		// a phantom channel on 5 Sep.
+		t.receive([0x90, 0x01, 0x7f, 0xb0, 0x62, 0x17, 0xb0, 0x06, 0x40])
+		vi.advanceTimersByTime(20)
+		expect(link.state.strip({ type: 'input', index: 12 }).level).toBe(0x6b) // unmoved
 	})
 
 	it('mutes from the surface arrive pushed, no Get needed', () => {
