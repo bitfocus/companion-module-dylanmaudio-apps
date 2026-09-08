@@ -71,7 +71,7 @@
   },
   {
    "id": "rx.mute.velocity0.ignored.b1",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -84,7 +84,7 @@
      "on": true
     }
    ],
-   "note": "the console's documented mute pair: the 00 terminator must not emit a second event"
+   "note": "the console's mute pair, confirmed on hardware: a desk mute press broadcasts 7F (or 3F for off) then the 00 terminator. Reading the terminator as a mute-off makes every desk mute arrive as on-then-immediately-off"
   },
   {
    "id": "rx.mute.dca3.b1",
@@ -280,7 +280,7 @@
   },
   {
    "id": "rx.mute.velocity0.ignored.b12",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 12,
@@ -293,7 +293,7 @@
      "on": true
     }
    ],
-   "note": "the console's documented mute pair: the 00 terminator must not emit a second event"
+   "note": "the console's mute pair, confirmed on hardware: a desk mute press broadcasts 7F (or 3F for off) then the 00 terminator. Reading the terminator as a mute-off makes every desk mute arrive as on-then-immediately-off"
   },
   {
    "id": "rx.mute.dca3.b12",
@@ -866,8 +866,54 @@
    "note": "the same bytes with strips off, base channel 12: outside the protocol window, reported as unknown rather than guessed at"
   },
   {
+   "id": "rx.broadcast.fader_triple_running_status",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b0 63 00 62 17 06 6b",
+   "events": [
+    {
+     "kind": "fader",
+     "type": "input",
+     "index": 1,
+     "level": 107
+    }
+   ],
+   "note": "running status: one B0, then the three legs. Zero lone pings appeared in 40,000 records on 2.12"
+  },
+  {
+   "id": "rx.broadcast.fader_stream_repeats_data_entry",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "b0 63 00 62 17 06 60 06 65 06 6b",
+   "events": [
+    {
+     "kind": "fader",
+     "type": "input",
+     "index": 1,
+     "level": 96
+    },
+    {
+     "kind": "fader",
+     "type": "input",
+     "index": 1,
+     "level": 101
+    },
+    {
+     "kind": "fader",
+     "type": "input",
+     "index": 1,
+     "level": 107
+    }
+   ],
+   "note": "a data entry may repeat while the run is unbroken - that is how a move streams without re-sending the address"
+  },
+  {
    "id": "rx.send_level.reply",
-   "tier": "two-impl",
+   "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -902,7 +948,7 @@
   },
   {
    "id": "rx.preamp_gain.reply",
-   "tier": "inferred",
+   "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -914,11 +960,12 @@
      "socket": 1,
      "value": 64
     }
-   ]
+   ],
+   "note": "the gain Get answers with a pitch bend: socket in the LSB position, gain in the MSB. A library that folds pitch bend into one 14-bit value scrambles it"
   },
   {
    "id": "rx.preamp_pad.reply",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -952,7 +999,7 @@
   },
   {
    "id": "rx.preamp_48v.reply",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -965,7 +1012,7 @@
      "on": false
     }
    ],
-   "note": "documented reply op 0B"
+   "note": "reply op 0B, confirmed on hardware"
   },
   {
    "id": "rx.unknown_channel.passthrough",

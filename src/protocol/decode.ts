@@ -433,11 +433,13 @@ export class DliveDecoder {
 				out.push({ kind: 'mix_assign', index: src.index, dest_type: dst.type, dest_index: dst.index, on: p[5] >= 0x40 })
 				return
 			}
-			// The spec gives pad and 48 V dedicated REPLY ops (08 / 0B)
-			// distinct from their set ops (09 / 0C). Accept both: the
-			// reply op is what the PDF documents, the set op is what a
-			// pure echo would look like, and which one the console
-			// actually emits is a capture item.
+			// Pad and 48 V have dedicated REPLY ops (08 / 0B) distinct
+			// from their set ops (09 / 0C). Settled 5 Sep 2026: the desk
+			// answers with the dedicated reply ops, not the generic
+			// `05 0F` form this once inferred. The set ops stay accepted
+			// because a pure echo would look like that, and the state
+			// layer is idempotent either way — but they are no longer the
+			// open question they were.
 			case OP_REPLY_PREAMP_PAD:
 			case OP_REPLY_PREAMP_48V:
 			case OP_PREAMP_PAD:

@@ -176,15 +176,15 @@ T("cue_list.0", "single", {"op": "cue_list", "id": 0}, cue(n, 0), socket="surfac
 T("cue_list.129", "single", {"op": "cue_list", "id": 129}, cue(n, 129), socket="surface")
 T("cue_list.1999", "single", {"op": "cue_list", "id": 1999}, cue(n, 1999), socket="surface")
 # §3.8 send level
-T("send_level.input1.monoaux1", "two-impl", {"op": "send_level", "type": "input", "index": 1, "dest_type": "mono_aux", "dest_index": 1, "level": 107}, send_level(n, "input", 1, "mono_aux", 1, 107), note="LV↔dB uncalibrated for sends")
-T("send_level.input3.stereofx2", "two-impl", {"op": "send_level", "type": "input", "index": 3, "dest_type": "stereo_fx_send", "dest_index": 2, "level": 0}, send_level(n, "input", 3, "stereo_fx_send", 2, 0))
-T("send_level.monogroup2.stereomatrix1", "two-impl", {"op": "send_level", "type": "mono_group", "index": 2, "dest_type": "stereo_matrix", "dest_index": 1, "level": 64}, send_level(n, "mono_group", 2, "stereo_matrix", 1, 64))
-T("send_level.fxreturn1.ufxsend1", "two-impl", {"op": "send_level", "type": "fx_return", "index": 1, "dest_type": "ufx_send", "dest_index": 1, "level": 90}, send_level(n, "fx_return", 1, "ufx_send", 1, 90))
+T("send_level.input1.monoaux1", "hardware", {"op": "send_level", "type": "input", "index": 1, "dest_type": "mono_aux", "dest_index": 1, "level": 107}, send_level(n, "input", 1, "mono_aux", 1, 107), note="LV↔dB uncalibrated for sends")
+T("send_level.input3.stereofx2", "hardware", {"op": "send_level", "type": "input", "index": 3, "dest_type": "stereo_fx_send", "dest_index": 2, "level": 0}, send_level(n, "input", 3, "stereo_fx_send", 2, 0))
+T("send_level.monogroup2.stereomatrix1", "hardware", {"op": "send_level", "type": "mono_group", "index": 2, "dest_type": "stereo_matrix", "dest_index": 1, "level": 64}, send_level(n, "mono_group", 2, "stereo_matrix", 1, 64))
+T("send_level.fxreturn1.ufxsend1", "hardware", {"op": "send_level", "type": "fx_return", "index": 1, "dest_type": "ufx_send", "dest_index": 1, "level": 90}, send_level(n, "fx_return", 1, "ufx_send", 1, 90))
 # §3.9 mix assign
 T("mix_assign.input1.monogroup1.on", "two-impl", {"op": "mix_assign", "index": 1, "dest_type": "mono_group", "dest_index": 1, "on": True}, mix_assign(n, 1, "mono_group", 1, True))
 T("mix_assign.input5.stereoaux3.off", "two-impl", {"op": "mix_assign", "index": 5, "dest_type": "stereo_aux", "dest_index": 3, "on": False}, mix_assign(n, 5, "stereo_aux", 3, False))
 # §3.10 preamp
-T("preamp_gain.mixrack1", "two-impl", {"op": "preamp_gain", "bank": "mixrack", "socket": 1, "value": 64}, [0xE0 | n, sock("mixrack", 1), 64], note="gain dB range disputed — raw value here")
+T("preamp_gain.mixrack1", "two-impl", {"op": "preamp_gain", "bank": "mixrack", "socket": 1, "value": 64}, [0xE0 | n, sock("mixrack", 1), 64], note="raw value here; the +5…+60 dB range is settled on hardware at GV 00 and 7F")
 T("preamp_gain.dx12.socket5", "two-impl", {"op": "preamp_gain", "bank": "dx12", "socket": 5, "value": 0}, [0xE0 | n, sock("dx12", 5), 0])
 T("preamp_gain.dx34.socket32", "two-impl", {"op": "preamp_gain", "bank": "dx34", "socket": 32, "value": 127}, [0xE0 | n, sock("dx34", 32), 127])
 T("preamp_pad.mixrack1.on", "two-impl", {"op": "preamp_pad", "bank": "mixrack", "socket": 1, "on": True}, sysex(n, [0x09, 0x00, 0x40]))
@@ -205,9 +205,13 @@ T("get_mix_assign.input1.monogroup1", "inferred", {"op": "get_mix_assign", "inde
 # of the Gets do — the PDF documents dedicated ops for pad and 48 V, and
 # an NRPN-style Get for gain. Was `inferred` from the pattern; now
 # `single` from the PDF (p.4).
-T("get_preamp_gain.mixrack1", "single", {"op": "get_preamp_gain", "bank": "mixrack", "socket": 1}, sysex(n, [0x05, 0x0B, 0x19, 0x00]), note="PDF writes CH here, not MP — suspected doc slip, capture both")
-T("get_preamp_pad.mixrack1", "single", {"op": "get_preamp_pad", "bank": "mixrack", "socket": 1}, sysex(n, [0x07, 0x00]), note="dedicated Get op 07, reply op 08")
-T("get_preamp_48v.dx12.socket1", "single", {"op": "get_preamp_48v", "bank": "dx12", "socket": 1}, sysex(n, [0x0A, 0x40]), note="dedicated Get op 0A, reply op 0B")
+# §3.7: the spec names this message by its DESTINATION and puts no stated
+# restriction on the source. Aux 1 -> Matrix 1 moved the send on hardware.
+# Note the asymmetry: the same source on a mix ASSIGN was relayed and ignored.
+T("send_level.monoaux1.monomatrix1", "hardware", {"op": "send_level", "type": "mono_aux", "index": 1, "dest_type": "mono_matrix", "dest_index": 1, "level": 107}, send_level(n, "mono_aux", 1, "mono_matrix", 1, 107), note="undocumented source; confirmed on hardware 5 Sep 2026. No dLive module offers this")
+T("get_preamp_gain.mixrack1", "hardware", {"op": "get_preamp_gain", "bank": "mixrack", "socket": 1}, sysex(n, [0x05, 0x0B, 0x19, 0x00]), note="this exact form answers with a pitch bend; the socket goes where the PDF writes CH, so that was not a doc slip. The inferred 05 0E form is silent and was never emitted here")
+T("get_preamp_pad.mixrack1", "hardware", {"op": "get_preamp_pad", "bank": "mixrack", "socket": 1}, sysex(n, [0x07, 0x00]), note="dedicated Get op 07, answered with reply op 08 — not the generic 05 0F form that was inferred before")
+T("get_preamp_48v.dx12.socket1", "hardware", {"op": "get_preamp_48v", "bank": "dx12", "socket": 1}, sysex(n, [0x0A, 0x40]), note="dedicated Get op 0A, answered with reply op 0B")
 
 # ---------------------------------------------------------------- RX cases
 for base in (1, 12):
@@ -223,7 +227,7 @@ for base in (1, 12):
     # messages are ignored", with the OFF range starting at 01.
     # Decoding it as mute-off makes every console mute-on arrive as
     # on-then-immediately-off. Capture the real pair on 2026-09-04.
-    R(f"rx.mute.velocity0.ignored.{b}", "single", [0x90 | n, 0x00, 0x7F, 0x90 | n, 0x00, 0x00], [{"kind": "mute", "type": "input", "index": 1, "on": True}], base=base, note="the console's documented mute pair: the 00 terminator must not emit a second event")
+    R(f"rx.mute.velocity0.ignored.{b}", "hardware", [0x90 | n, 0x00, 0x7F, 0x90 | n, 0x00, 0x00], [{"kind": "mute", "type": "input", "index": 1, "on": True}], base=base, note="the console's mute pair, confirmed on hardware: a desk mute press broadcasts 7F (or 3F for off) then the 00 terminator. Reading the terminator as a mute-off makes every desk mute arrive as on-then-immediately-off")
     R(f"rx.mute.dca3.{b}", "hardware", [0x90 | (n + 4), 0x38, 0x7F], [{"kind": "mute", "type": "dca", "index": 3, "on": True}], base=base)
     R(f"rx.ping.input1.{b}", "hardware", [0xB0 | n, 0x63, 0x00], [{"kind": "fader_ping", "type": "input", "index": 1}], base=base, note="lone NRPN MSB — fader moved, no level")
     R(f"rx.ping.stereogroup2.{b}", "hardware", [0xB0 | (n + 1), 0x63, 0x41], [{"kind": "fader_ping", "type": "stereo_group", "index": 2}], base=base)
@@ -319,21 +323,35 @@ R("rx.strip.off_by_default", "hardware", [0xB1, 0x00, 0x6B],
   [{"kind": "unknown", "status": 0xB1, "data": [0x00, 0x6B]}],
   note="the same bytes with strips off, base channel 12: outside the protocol window, reported as unknown rather than guessed at",
   base=12)
-R("rx.send_level.reply", "two-impl", send_level(0, "input", 1, "mono_aux", 1, 107),
+# §3.2: what a fader move actually looks like on the wire. The desk streams
+# ~16 of these in 0.3 s, in running status, complete with the level - not the
+# lone `63` ping that firmware 1.94 sent and that query-on-ping was built for.
+R("rx.broadcast.fader_triple_running_status", "hardware",
+  [0xB0, 0x63, 0x00, 0x62, 0x17, 0x06, 0x6B],
+  [{"kind": "fader", "type": "input", "index": 1, "level": 107}],
+  note="running status: one B0, then the three legs. Zero lone pings appeared in 40,000 records on 2.12")
+R("rx.broadcast.fader_stream_repeats_data_entry", "hardware",
+  [0xB0, 0x63, 0x00, 0x62, 0x17, 0x06, 0x60, 0x06, 0x65, 0x06, 0x6B],
+  [{"kind": "fader", "type": "input", "index": 1, "level": 96},
+   {"kind": "fader", "type": "input", "index": 1, "level": 101},
+   {"kind": "fader", "type": "input", "index": 1, "level": 107}],
+  note="a data entry may repeat while the run is unbroken - that is how a move streams without re-sending the address")
+R("rx.send_level.reply", "hardware", send_level(0, "input", 1, "mono_aux", 1, 107),
   [{"kind": "send_level", "type": "input", "index": 1, "dest_type": "mono_aux", "dest_index": 1, "level": 107}])
 R("rx.mix_assign.reply", "inferred", mix_assign(0, 1, "mono_group", 1, True),
   [{"kind": "mix_assign", "index": 1, "dest_type": "mono_group", "dest_index": 1, "on": True}])
-R("rx.preamp_gain.reply", "inferred", [0xE0, 0x00, 0x40],
-  [{"kind": "preamp_gain", "bank": "mixrack", "socket": 1, "value": 64}])
-R("rx.preamp_pad.reply", "single", sysex(0, [0x08, 0x41, 0x7F]),
+R("rx.preamp_gain.reply", "hardware", [0xE0, 0x00, 0x40],
+  [{"kind": "preamp_gain", "bank": "mixrack", "socket": 1, "value": 64}],
+  note="the gain Get answers with a pitch bend: socket in the LSB position, gain in the MSB. A library that folds pitch bend into one 14-bit value scrambles it")
+R("rx.preamp_pad.reply", "hardware", sysex(0, [0x08, 0x41, 0x7F]),
   [{"kind": "preamp_pad", "bank": "dx12", "socket": 2, "on": True}],
   note="documented reply op 08; the PDF gives replies the saturated 00/7F values, not the 00-3F/40-7F set ranges")
 R("rx.preamp_pad.echo_of_set", "inferred", sysex(0, [0x09, 0x41, 0x40]),
   [{"kind": "preamp_pad", "bank": "dx12", "socket": 2, "on": True}],
   note="if the console echoes the set shape instead of the documented reply, it must still decode")
-R("rx.preamp_48v.reply", "single", sysex(0, [0x0B, 0x60, 0x00]),
+R("rx.preamp_48v.reply", "hardware", sysex(0, [0x0B, 0x60, 0x00]),
   [{"kind": "preamp_48v", "bank": "dx34", "socket": 1, "on": False}],
-  note="documented reply op 0B")
+  note="reply op 0B, confirmed on hardware")
 R("rx.unknown_channel.passthrough", "hardware", [0x90 | 9, 0x00, 0x7F, 0x90, 0x00, 0x7F],
   [{"kind": "unknown", "status": 0x99, "data": [0, 127]}, {"kind": "mute", "type": "input", "index": 1, "on": True}],
   note="MIDI channel 10 is outside N..N+4 for base 1 → reported as unknown, stream continues")

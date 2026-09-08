@@ -897,7 +897,7 @@
   },
   {
    "id": "send_level.input1.monoaux1",
-   "tier": "two-impl",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -914,7 +914,7 @@
   },
   {
    "id": "send_level.input3.stereofx2",
-   "tier": "two-impl",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -930,7 +930,7 @@
   },
   {
    "id": "send_level.monogroup2.stereomatrix1",
-   "tier": "two-impl",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -946,7 +946,7 @@
   },
   {
    "id": "send_level.fxreturn1.ufxsend1",
-   "tier": "two-impl",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -1003,7 +1003,7 @@
     "value": 64
    },
    "hex": "e0 00 40",
-   "note": "gain dB range disputed \u2014 raw value here"
+   "note": "raw value here; the +5\u2026+60 dB range is settled on hardware at GV 00 and 7F"
   },
   {
    "id": "preamp_gain.dx12.socket5",
@@ -1195,8 +1195,25 @@
    "hex": "f0 00 00 1a 50 10 01 00 00 05 0f 0e 00 01 00 f7"
   },
   {
+   "id": "send_level.monoaux1.monomatrix1",
+   "tier": "hardware",
+   "dir": "tx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "intent": {
+    "op": "send_level",
+    "type": "mono_aux",
+    "index": 1,
+    "dest_type": "mono_matrix",
+    "dest_index": 1,
+    "level": 107
+   },
+   "hex": "f0 00 00 1a 50 10 01 00 02 0d 00 03 00 6b f7",
+   "note": "undocumented source; confirmed on hardware 5 Sep 2026. No dLive module offers this"
+  },
+  {
    "id": "get_preamp_gain.mixrack1",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -1206,11 +1223,11 @@
     "socket": 1
    },
    "hex": "f0 00 00 1a 50 10 01 00 00 05 0b 19 00 f7",
-   "note": "PDF writes CH here, not MP \u2014 suspected doc slip, capture both"
+   "note": "this exact form answers with a pitch bend; the socket goes where the PDF writes CH, so that was not a doc slip. The inferred 05 0E form is silent and was never emitted here"
   },
   {
    "id": "get_preamp_pad.mixrack1",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -1220,11 +1237,11 @@
     "socket": 1
    },
    "hex": "f0 00 00 1a 50 10 01 00 00 07 00 f7",
-   "note": "dedicated Get op 07, reply op 08"
+   "note": "dedicated Get op 07, answered with reply op 08 \u2014 not the generic 05 0F form that was inferred before"
   },
   {
    "id": "get_preamp_48v.dx12.socket1",
-   "tier": "single",
+   "tier": "hardware",
    "dir": "tx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -1234,7 +1251,7 @@
     "socket": 1
    },
    "hex": "f0 00 00 1a 50 10 01 00 00 0a 40 f7",
-   "note": "dedicated Get op 0A, reply op 0B"
+   "note": "dedicated Get op 0A, answered with reply op 0B"
   }
  ]
 }

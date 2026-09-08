@@ -288,16 +288,15 @@ after reading the PDF directly (p.4), having previously been
 decoder accepts both, since an echo is what a console might plausibly
 send instead. Gain uses the NRPN-style Get with parameter `19`.
 
-One unresolved oddity: the PDF writes the gain Get's last operand as
-`CH`, not `MP`, even though every other preamp message is addressed by
-socket. That is very likely a copy-paste slip, but it is the PDF, so
-both candidates go on the capture list rather than being guessed.
-Mute and fader Gets are `single` (PDF + legacy module); the rest follow
-the same pattern and are `inferred`. Reply shapes are assumed to be the
-matching *set* messages — the legacy module parses fader and send-level
-replies that way, which is why `rx.fader.input1.unity` and
-`rx.send_level.reply` carry `single`/`two-impl` while the remaining
-reply fixtures are `inferred` — but no capture exists yet. **The scheduler must treat a Get with no reply
+The PDF's apparent slip was not one: it writes the gain Get's last
+operand as `CH` rather than `MP`, and the socket does go there. The form
+answers; the `05 0E` shape extrapolated from the generic pattern is
+silent, and is retired rather than kept as a fallback.
+
+Mute and fader Gets remain `single` (PDF + legacy module). Reply shapes
+for the rest are still assumed to be the matching *set* messages — the
+legacy module parses fader and send-level replies that way — and stay
+`inferred` until a capture says otherwise. **The scheduler must treat a Get with no reply
 within 500 ms as "unsupported", not as an error**, so an `inferred`
 Get that the console ignores degrades to "no feedback" rather than
 a connection fault.
