@@ -318,6 +318,14 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 			this.bridgeBaseChannel = base
 			this.baseN = (base - 1) & 0x0f
 		}
+		// `mirror_from_broadcast` is stored here and deliberately not consulted
+		// (2026-09-08). The flag means the bridge's mirror is broadcast-fed after
+		// connect, so no polling is needed — which this module already never does.
+		// It does NOT mean the connect-time cold sync can be skipped: names,
+		// colours, mutes and levels are only broadcast when they *change*, and the
+		// full state dump only arrives on a show load, so a client connecting
+		// mid-show has nothing until it asks once. Keep the cold sync.
+		// See the session report §3.2 and §5.
 		this.caps = info.json.capabilities ?? {}
 
 		// 2. hello
