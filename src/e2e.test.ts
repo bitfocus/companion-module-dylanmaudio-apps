@@ -236,7 +236,12 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 		expect(fb.value).toBe(false)
 		await host.runAction('mute', { type: 'input', index: 3, mode: 'on' })
 		await waitFor(() => fb.value === true, 2000, 'mute feedback')
-		expect(host.variables['mute_ch3']).toBe(true)
+		// Not `expect(...).toBe(true)` here: feedbacks flush on a 15 ms timer and
+		// variables on a 20 ms one, so the feedback can legitimately land first.
+		// Asserting the variable the instant the feedback arrives was a 5 ms race,
+		// and it failed twice on 8 Sep. Both land inside 20 ms; nothing is wrong
+		// with the product, the test was just assuming they were atomic.
+		await waitFor(() => host.variables['mute_ch3'] === true, 1000, 'mute variable')
 		await host.runAction('mute', { type: 'input', index: 3, mode: 'toggle' })
 		await waitFor(() => fb.value === false, 2000, 'mute feedback off')
 	})

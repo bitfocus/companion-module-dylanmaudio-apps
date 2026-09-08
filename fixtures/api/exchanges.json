@@ -1,15 +1,16 @@
 {
   "schema": "dlive-api-fixtures/1",
-  "source": "docs/bridge-client-api-v1.md (accepted 2026-08-25)",
+  "source": "docs/bridge-client-api-v1.md (accepted 2026-08-25; amended 2026-09-07, spec 1a: broadcast-driven mirror 1.2)",
   "note": "Authority for the Client API wire shapes, BOTH sides: the monorepo server replays requests and asserts responses; the Companion module mocks the server from the same file (vendored by tools/sync_fixtures.sh, monorepo -> module repo — the REVERSE of the protocol fixtures). Matching rules: response bodies are SUBSET-matched (extra server keys are allowed — additive changes don't bump v1, spec §11); '<str>'/'<int>' match any value of that type; '<lane>' is substituted with the lane_id registered by the most recent hello case; 'sends' asserts the exact console-bound hex the request must produce. Never edit a case to make a test green — change the spec first, then both sides.",
   "cases": [
     {
       "id": "info.ok",
       "request": {"method": "GET", "path": "/api/v1/info"},
       "response": {"status": 200, "body": {
-        "v": 1, "session": "main", "api": 1,
+        "v": 1, "session": "main", "api": 1, "mirror": "1.2",
         "capabilities": {"raw": true, "fade": true, "query": true,
-                          "fader_db": true, "send_level": false},
+                          "fader_db": true, "send_level": false,
+                          "mirror_from_broadcast": true},
         "return_port_policy": "broadcasts", "seq": "<int>"}}
     },
     {
