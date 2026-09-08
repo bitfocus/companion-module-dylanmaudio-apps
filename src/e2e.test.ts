@@ -163,6 +163,16 @@ async function idle(inst: DliveInstance): Promise<void> {
 	)
 }
 
+/** An ephemeral port that is bound, then released — nothing is listening on it. */
+async function closedPort(): Promise<number> {
+	const { createServer } = await import('node:net')
+	const srv = createServer()
+	await new Promise<void>((res) => srv.listen(0, '127.0.0.1', res))
+	const port = (srv.address() as { port: number }).port
+	await new Promise<void>((res) => srv.close(() => res()))
+	return port
+}
+
 async function waitFor(cond: () => boolean, timeoutMs: number, what: string): Promise<void> {
 	const start = Date.now()
 	while (!cond()) {
@@ -248,13 +258,37 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 		expect(inst.link.scheduler.stats.sent - sentBefore).toBe(0)
 	})
 
+	it("the simulator's own surface move broadcasts a complete triple, and costs no Gets", async () => {
+		await idle(inst)
+		const sentBefore = inst.link.scheduler.stats.sent
+		// The Virtual dLive models 2.12 since the simulator merge: a surface move
+		// broadcasts the level rather than announcing a bare address.
+		sim.cmd('fader input 6 60')
+		await waitFor(() => host.variables['fader_lv_ch6'] === 60, 3000, 'surface move broadcast')
+		expect(inst.link.stats.faderPings).toBe(0)
+		expect(inst.link.scheduler.stats.sent - sentBefore).toBe(0)
+	})
+
 	it('a bare select is never answered — query-on-ping is retired', async () => {
 		await idle(inst)
 		const sentBefore = inst.link.scheduler.stats.sent
-		sim.cmd('fader input 5 95') // this sim answers a surface move with a lone ping
-		await new Promise((r) => setTimeout(r, 400))
-		expect(inst.link.stats.faderPings).toBeGreaterThan(0)
+		// Nothing on 2.12 originates this; it is another client's select relayed
+		// raw, so it has to be played in by hand now the sim no longer pings.
+		sim.cmd('cc 99 4')
+		await waitFor(() => inst.link.stats.faderPings > 0, 2000, 'bare select surfaced')
+		await new Promise((r) => setTimeout(r, 200))
 		expect(inst.link.scheduler.stats.sent - sentBefore).toBe(0)
+	})
+
+	it('a SoftKey Custom MIDI string arrives as a cc event, not as channel mode', async () => {
+		await idle(inst)
+		const seen: { kind: string; cc?: number; value?: number }[] = []
+		const onEvent = (e: { kind: string; cc?: number; value?: number }) => seen.push(e)
+		inst.link.on('event', onEvent)
+		sim.cmd('softkey B0,7F,01')
+		await waitFor(() => seen.some((e) => e.kind === 'cc' && e.cc === 0x7f), 2000, 'softkey string')
+		inst.link.off('event', onEvent)
+		expect(seen.find((e) => e.kind === 'cc' && e.cc === 0x7f)?.value).toBe(1)
 	})
 
 	it('timed fade reaches the target and is emit-on-change', async () => {
@@ -293,17 +327,19 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 	})
 
 	it('honest status: a desk that stops answering goes to ConnectionFailure with the MIDI diagnostic', async () => {
-		// simulate Global MIDI Send off by making the sim ignore Gets via a fresh sim
-		const quiet = new Sim()
-		await quiet.start(1)
+		// A port with nothing behind it. This used to spin up a second Virtual
+		// dLive purely to borrow its port number and then kill it, which broke
+		// the moment the simulator started binding the Surface port as well —
+		// two instances cannot coexist. All the test ever needed was a closed
+		// port: connect will fail, so status must never reach 'ok'.
+		const deadPort = await closedPort()
 		const h2 = new FakeHost()
 		const i2 = new DliveInstance(h2.context)
-		quiet.proc.kill() // close the listener: connect will fail → stays 'connecting', never 'ok'
 		await i2.init({
 			...DEFAULT_CONFIG,
 			transport: 'direct',
 			host: '127.0.0.1',
-			port: quiet.port,
+			port: deadPort,
 			baseChannel: 1,
 			inputs: 4,
 			extendedTypes: false,
@@ -311,5 +347,5 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 		await new Promise((r) => setTimeout(r, 300))
 		expect(h2.status.some((s) => s.status === 'ok')).toBe(false)
 		await i2.destroy()
-	})
+	}, 20000)
 })

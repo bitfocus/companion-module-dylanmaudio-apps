@@ -37,6 +37,7 @@ import {
 	OP_REPLY_COLOUR,
 	OP_REPLY_NAME,
 	OP_SEND_LEVEL,
+	GET_TYPE_NOTE,
 	SYSEX_HEADER,
 } from './encode.js'
 import { PARAM_FADER, type ConsoleEvent } from './intents.js'
@@ -412,8 +413,21 @@ export class DliveDecoder {
 				return
 			}
 			case OP_REPLY_COLOUR: {
+				// Op 05 is Reply Colour inbound and Get outbound, and the console
+				// relays other clients' Get *requests* as well as their replies —
+				// so both meanings genuinely arrive here (protocol.md rule 11).
+				// Length settles most of it: a colour reply body is always four
+				// bytes, a Get is five or seven.
+				if (p.length > 4) return // a relayed Get: its reply will follow
+				if (p.length < 4) return
+				// At four bytes only `05 09 <v>` collides, with a colour reply for
+				// input 10. A colour is 00–07, so anything above that is a relayed
+				// Get mute. Below it the two are indistinguishable, and this reads
+				// it as the colour reply — losing real colours for one input would
+				// be worse than a rare spurious one, and a Get brings its own reply.
+				if (p[2] === GET_TYPE_NOTE && p[3] > 0x07) return
 				const ref = resolveAddress(this.baseN, n, p[2])
-				if (!ref || p.length < 4) return
+				if (!ref) return
 				out.push({ kind: 'colour', ...ref, colour: colourFromByte(p[3]) })
 				return
 			}

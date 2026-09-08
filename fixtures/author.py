@@ -262,9 +262,9 @@ R("rx.nrpn.latch_persists", "hardware", [0xB0, 0x63, 0x07, 0xB0, 0x62, 0x17, 0xB
 R("rx.nrpn.ping_then_ping", "hardware", [0xB0, 0x63, 0x00, 0xB0, 0x63, 0x01],
   [{"kind": "fader_ping", "type": "input", "index": 1}, {"kind": "fader_ping", "type": "input", "index": 2}],
   note="two pings: the first 63 is emitted as a ping when the next 63 arrives (or on flush)")
-R("rx.nrpn.ping_then_mute", "hardware", [0xB0, 0x63, 0x00, 0x90, 0x03, 0x7F],
+R("rx.nrpn.bare_select_then_mute", "hardware", [0xB0, 0x63, 0x00, 0x90, 0x03, 0x7F],
   [{"kind": "fader_ping", "type": "input", "index": 1}, {"kind": "mute", "type": "input", "index": 4, "on": True}],
-  note="a non-NRPN message after a lone 63 flushes the ping first")
+  note="a bare 63 with no 62 after it. On 2.12 the CONSOLE never originates one - this is another client's select, relayed raw - so the fader_ping event means 'somebody selected an address', not 'the desk announced a move'. The following message flushes it. Named ping_then_mute until 8 Sep 2026, which read as though the desk pings")
 R("rx.nrpn.param.main_assign", "two-impl", [0xB0, 0x63, 0x00, 0xB0, 0x62, 0x18, 0xB0, 0x06, 0x7F],
   [{"kind": "param", "type": "input", "index": 1, "param": 0x18, "value": 0x7F}])
 R("rx.sysex.unterminated_aborted_by_status", "hardware", HDR + [0x00, 0x02, 0x00, ord("K"), 0x90, 0x01, 0x7F],
@@ -336,6 +336,18 @@ R("rx.broadcast.fader_stream_repeats_data_entry", "hardware",
    {"kind": "fader", "type": "input", "index": 1, "level": 101},
    {"kind": "fader", "type": "input", "index": 1, "level": 107}],
   note="a data entry may repeat while the run is unbroken - that is how a move streams without re-sending the address")
+# Rule 11: the console relays other clients' Get REQUESTS, not just replies,
+# so op 05 arrives from the console in both of its meanings.
+R("rx.get.relayed_fader_ignored", "hardware", sysex(0, [0x05, 0x0B, 0x17, 0x00]) + [0x90, 0x00, 0x7F],
+  [{"kind": "mute", "type": "input", "index": 1, "on": True}],
+  note="another client's Get Fader, relayed raw. Five-byte body, so it cannot be a colour reply (always four) - dropped, and the stream continues")
+R("rx.get.relayed_send_level_ignored", "hardware", sysex(0, [0x05, 0x0F, 0x0D, 0x00, 0x02, 0x00]),
+  [], note="another client's Get Send Level: seven-byte body, dropped")
+R("rx.get.relayed_mute_high_channel_ignored", "hardware", sysex(0, [0x05, 0x09, 0x40]),
+  [], note="Get Mute for input 65. Four bytes, so it collides with a colour reply for input 10 - but 0x40 is not a colour (00-07), so it is unambiguously a Get")
+R("rx.colour.reply_input10_survives_the_ambiguity", "hardware", sysex(0, [0x05, 0x09, 0x03]),
+  [{"kind": "colour", "type": "input", "index": 10, "colour": "yellow"}],
+  note="THE irreducible case: identical bytes to a relayed Get Mute for input 4. Read as the colour reply - losing real colours for one input is worse than a rare spurious one, and a Get brings its own reply")
 R("rx.send_level.reply", "hardware", send_level(0, "input", 1, "mono_aux", 1, 107),
   [{"kind": "send_level", "type": "input", "index": 1, "dest_type": "mono_aux", "dest_index": 1, "level": 107}])
 R("rx.mix_assign.reply", "inferred", mix_assign(0, 1, "mono_group", 1, True),

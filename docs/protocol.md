@@ -168,9 +168,12 @@ byte-identical to the Reaper traffic proven over years of shows; the
 PDF's silence means it is presumed harmless rather than known to be,
 which is a 30-second console check.
 
-The console **transmits this same message** when a scene is recalled
-from its own screen, which is what makes scene state mirrorable
-without polling.
+The console **transmits a recall made on its own screen**, which is what
+makes scene state mirrorable without polling — but it sends the
+**two-message form**, `Bn 00 bank` then `Cn pc`, with **no CC 32**. The
+fixtures are deliberately the client's three-message shape, because that
+is what we send; a decoder must accept both, and treat a lone `Cn pc`
+with no preceding bank as bank 0.
 
 ### 3.5 Cue-list recall — `single` (Surface socket)
 ```
@@ -267,7 +270,10 @@ Pad and 48 V answer with their **dedicated reply ops** (`08` / `0B`),
 not the generic `05 0F` form that was inferred here before. Preamp gain
 answers the PDF's `05 0B 19 <socket>` form with a pitch bend
 `En <socket> <gv>`; the inferred `05 0E` form is silent — retired.
-A burst of 300 Gets produced 300 replies with nothing dropped.
+A burst of 300 Gets produced 300 replies with nothing dropped. Replies
+come back in **11.5 ms median, 29 ms worst case** — not the ~1 ms a
+loopback simulator suggests. Anything that assumes a Get is effectively
+synchronous is calibrated against the sim, not the desk.
 The generic Get wraps the *message type* the reply will come back as:
 ```
 F0 <hdr> 0N 05 09 CH F7                mute        (09 = Note On)      reply: 9n CH 7F|3F
@@ -315,7 +321,8 @@ replaces the polling model the module was built around.
 | Mute toggled | `9n CH 7F` / `9n CH 3F`, then the `00` terminator | yes |
 | Scene recalled at the desk | `Bn 00 bank` + `Cn pc`, on **both** 51325 and 51328 | yes |
 | Show load | the whole state — 1,747 messages in 12 s | yes |
-| Get reply | appears to reach every client, not only the asker | yes |
+| Get **request** | another client's Get, relayed raw — see rule 11 | no |
+| Get reply | reaches every client, not only the asker | yes |
 | SoftKey with a Custom MIDI string | the string, verbatim (`b0 7f 01`) | no — a trigger |
 | MIDI Strip fader / key | `b1 00 v` / `91 00 v` on channels 2–3 (§4b) | no — a trigger |
 
@@ -404,10 +411,22 @@ switched on — see decoder rule 9.
    clear it.
 3. A status byte aborts an unterminated SysEx; the SysEx accumulator is
    bounded (256 bytes) — an overrun drops the SysEx, never the stream.
-4. **NRPN is trusted only in contiguous complete triples.** The latch is
-   real — the console's own, console-wide, applied across clients
-   (§4 note 5) — but a decoder must not keep one of its own across
-   messages. Because relay is raw, another controller's partial NRPN
+4. **NRPN is trusted only in contiguous complete triples — as a client.**
+   This rule and the console's own behaviour are opposites, and both are
+   correct for what they are:
+
+   | | On an orphan data entry (`62`/`06` with no `63` of its own) |
+   |---|---|
+   | **The console** | applies it to whatever its **console-wide** selection currently is (§4 note 5) — one client's `63` steers another client's `06` |
+   | **A client decoder (this one)** | drops it |
+
+   The console can do that because it *owns* the selection: there is one,
+   it knows it, and acting on it is what the desk's own operators expect.
+   A client cannot, because it sees the selection only through relayed
+   bytes it may have missed the start of. Modelling the console's rule on
+   this side does not reproduce the console's behaviour; it invents
+   values. A simulator implements the console's rule, this decoder
+   implements the client's, and the fixtures pin the client side. Because relay is raw, another controller's partial NRPN
    arrives here verbatim, missing its select leg; combining that orphan
    data entry with a stale address invents a value for a channel nobody
    touched. It did exactly that on the desk, producing a phantom
@@ -449,7 +468,21 @@ switched on — see decoder rule 9.
    both directions through one parser cannot tell `00 05 09 00` (colour
    reply, input 10, off) from `00 05 09 00` (Get mute, input 1). Parse
    each direction with its own instance.
-11. On the Surface socket a cue-list recall (§3.5) is byte-identical to
+11. **Relayed Get requests arrive on the inbound stream**, because the
+    console relays requests and not merely replies (§4). This drags the
+    rule-10 ambiguity out of the "tap" hypothetical and into ordinary
+    traffic: op `05` now genuinely arrives from the console in both
+    meanings. Length separates most of it — a colour reply body is always
+    four bytes (`0N 05 CH COLOUR`), while a Get is five (`05 0B …`) or
+    seven (`05 0F …`) — so anything longer than four is a relayed Get and
+    is dropped. At four bytes only `05 09 <v>` collides, and there the
+    fourth byte decides: a colour is `00`–`07`, so `v > 7` is a relayed
+    Get mute. **`05 09 00`–`05 09 07` stays irreducibly ambiguous** — it
+    is both a colour reply for input 10 and a Get mute for inputs 1–8.
+    This decoder reads it as the colour reply, because dropping real
+    colour replies for one input is worse than a rare spurious one, and
+    because a Get is always followed by its own reply.
+12. On the Surface socket a cue-list recall (§3.5) is byte-identical to
     a scene recall and decodes as `scene` — a listener on 51328 must
     label accordingly. Whether the Surface pushes anything at all is
     checklist item 7.

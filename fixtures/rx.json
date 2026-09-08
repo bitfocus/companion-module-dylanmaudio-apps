@@ -596,7 +596,7 @@
    "note": "two pings: the first 63 is emitted as a ping when the next 63 arrives (or on flush)"
   },
   {
-   "id": "rx.nrpn.ping_then_mute",
+   "id": "rx.nrpn.bare_select_then_mute",
    "tier": "hardware",
    "dir": "rx",
    "socket": "mixrack",
@@ -615,7 +615,7 @@
      "on": true
     }
    ],
-   "note": "a non-NRPN message after a lone 63 flushes the ping first"
+   "note": "a bare 63 with no 62 after it. On 2.12 the CONSOLE never originates one - this is another client's select, relayed raw - so the fader_ping event means 'somebody selected an address', not 'the desk announced a move'. The following message flushes it. Named ping_then_mute until 8 Sep 2026, which read as though the desk pings"
   },
   {
    "id": "rx.nrpn.param.main_assign",
@@ -910,6 +910,60 @@
     }
    ],
    "note": "a data entry may repeat while the run is unbroken - that is how a move streams without re-sending the address"
+  },
+  {
+   "id": "rx.get.relayed_fader_ignored",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "f0 00 00 1a 50 10 01 00 00 05 0b 17 00 f7 90 00 7f",
+   "events": [
+    {
+     "kind": "mute",
+     "type": "input",
+     "index": 1,
+     "on": true
+    }
+   ],
+   "note": "another client's Get Fader, relayed raw. Five-byte body, so it cannot be a colour reply (always four) - dropped, and the stream continues"
+  },
+  {
+   "id": "rx.get.relayed_send_level_ignored",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "f0 00 00 1a 50 10 01 00 00 05 0f 0d 00 02 00 f7",
+   "events": [],
+   "note": "another client's Get Send Level: seven-byte body, dropped"
+  },
+  {
+   "id": "rx.get.relayed_mute_high_channel_ignored",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "f0 00 00 1a 50 10 01 00 00 05 09 40 f7",
+   "events": [],
+   "note": "Get Mute for input 65. Four bytes, so it collides with a colour reply for input 10 - but 0x40 is not a colour (00-07), so it is unambiguously a Get"
+  },
+  {
+   "id": "rx.colour.reply_input10_survives_the_ambiguity",
+   "tier": "hardware",
+   "dir": "rx",
+   "socket": "mixrack",
+   "base_channel": 1,
+   "hex": "f0 00 00 1a 50 10 01 00 00 05 09 03 f7",
+   "events": [
+    {
+     "kind": "colour",
+     "type": "input",
+     "index": 10,
+     "colour": "yellow"
+    }
+   ],
+   "note": "THE irreducible case: identical bytes to a relayed Get Mute for input 4. Read as the colour reply - losing real colours for one input is worse than a rare spurious one, and a Get brings its own reply"
   },
   {
    "id": "rx.send_level.reply",
