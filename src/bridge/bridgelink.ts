@@ -43,9 +43,16 @@ const FIRST_CLASS = new Set([
 
 /**
  * Capability-gated ops are sent verbatim, NEVER wrapped in `raw`: the raw
- * escape hatch would silently bypass the bridge's gate (send_level is
- * gated until the calibration session), and the polite `capability_off`
- * ack is the behaviour we want.
+ * escape hatch would silently bypass the bridge's gate, and the polite
+ * `capability_off` ack is the behaviour we want.
+ *
+ * send_level was gated until the send LV↔dB law was measured. The 5 Sep
+ * 2026 sweep found it identical to the fader law at all 128 steps, and
+ * bridge 1.1.8 ungated it — but it stays here, because a 1.1.7 bridge
+ * still gates it and must still be able to say so.
+ *
+ * Note the gate governs *sending* only. Whether sends are displayed in dB
+ * is the operator's `sendsInDb` setting, and does not read this capability.
  */
 const GATED = new Set(['send_level'])
 

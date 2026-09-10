@@ -133,7 +133,10 @@ class MockBridge {
 			this.cmds.push({ body })
 			const intent = body.intent as Record<string, unknown>
 			if (intent.op === 'send_level') {
-				send(409, fixture('cmd.send_level.capability_off').response.body)
+				// Ungated in bridge 1.1.8 (cmd.send_level.ok). The status comes from
+				// the fixture; the cid is echoed, since the link matches acks by it.
+				const f = fixture('cmd.send_level.ok').response
+				send(f.status, { ...f.body, cid: body.cid })
 				return
 			}
 			send(200, { cid: body.cid, ok: true })
@@ -270,9 +273,28 @@ describe('BridgeLink', () => {
 		expect((bridge.cmds[1].body.intent as { op: string }).op).toBe('fader')
 	})
 
-	it('capability_off is reported politely, never a crash', async () => {
+	it('send level goes through on a 1.1.8 bridge, in the wire shape the fixture pins', async () => {
 		link.start()
 		await waitFor(() => link.isOk, 'ok')
+		const before = bridge.cmds.length
+		link.send({ op: 'send_level', type: 'input', index: 1, dest_type: 'mono_aux', dest_index: 1, level: 100 })
+		await waitFor(() => bridge.cmds.length > before, 'posted')
+		const posted = bridge.cmds[bridge.cmds.length - 1].body
+		const want = fixture('cmd.send_level.ok').request.body
+		expect(posted.v).toBe(want.v)
+		expect(posted.session).toBe(want.session)
+		expect(posted.intent).toEqual(want.intent)
+		await new Promise((r) => setTimeout(r, 50))
+		expect(logs.some((l) => l.includes('capability_off'))).toBe(false)
+		expect(link.diag().getsMissed).toBe(0)
+	})
+
+	it('capability_off is still reported politely — a 1.1.7 bridge gates send level', async () => {
+		link.start()
+		await waitFor(() => link.isOk, 'ok')
+		// No fixture case pins the 409 any more (it moved to cmd.send_level.ok),
+		// but an older bridge still answers this way and must not crash us.
+		bridge.rejectCmdOnceWith = 409
 		link.send({ op: 'send_level', type: 'input', index: 1, dest_type: 'mono_aux', dest_index: 1, level: 100 })
 		await waitFor(() => logs.some((l) => l.includes('capability_off')), 'logged')
 		expect(link.isOk).toBe(true)
