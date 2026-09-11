@@ -220,7 +220,7 @@ export function buildFeedbacks(ctx: ModuleContext): CompanionFeedbackDefinitions
 		send_level: {
 			type: 'value',
 			name: 'Send level',
-			description: 'Raw 0–127 unless "Show send levels in dB" is on in the connection settings',
+			description: 'dB, or raw 0–127 if "Show send levels in dB" is turned off in the connection settings',
 			options: [
 				...channelFields({ types: CHOICES_SEND_SOURCE, label: 'From' }),
 				...channelFields({ types: CHOICES_SEND_DEST, prefix: 'dest', label: 'To', defaultType: 'mono_aux' }),

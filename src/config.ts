@@ -69,7 +69,7 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	showFile: '',
 	showImport: '',
 	sceneNames: '',
-	sendsInDb: false,
+	sendsInDb: true,
 	preampGainRange: 'spec',
 	inFlight: 8,
 	pollIntervalMs: 50,
@@ -220,7 +220,7 @@ export function GetConfigFields(ctx: ConfigFieldContext = {}): SomeCompanionConf
 			id: 'sendsInDb',
 			label: 'Show send levels in dB',
 			tooltip:
-				'Send levels are a separate protocol surface whose dB mapping is not yet calibrated. Off: raw 0–127. On: assume the fader table (may be off by a few dB).',
+				'The send level ↔ dB law was measured on firmware 2.12 (September 2026) and matches the fader law at every one of its 128 steps, so these dB values are exact. Turn off to see the raw 0–127 value instead.',
 			width: 6,
 			default: false,
 		},

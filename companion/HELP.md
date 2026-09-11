@@ -40,7 +40,7 @@ bridge**, and this module inherits them.
 | Show file | Loaded on the connection's own **show file page**, not here — see below |
 | Show file path (advanced) | Only useful when the file sits somewhere this sandboxed module can read. An uploaded show wins over it |
 | Scene names (manual) | `scene,Name` per line; overrides the show file |
-| Show send levels in dB | Off by default: the send-level ↔ dB mapping is not yet calibrated |
+| Show send levels in dB | On by default. The send law was measured on hardware and matches the fader law exactly; turn off for raw 0–127 |
 | Preamp gain range | Sources disagree; pick what matches your screen |
 
 ### Status colours
@@ -142,8 +142,6 @@ GO / Next / Previous; named Console Actions; a status button.
 - **SoftKeys cannot be triggered by MIDI**; use a console Action instead.
 - **Preamps are addressed by socket**, not channel; the patch is not
   readable.
-- **Send levels** are raw 0–127 until the dB mapping is calibrated on
-  hardware.
 - Some "Get" queries (preamp, mix assign) are extrapolated from the
   documented pattern. If the desk ignores one, the module notices (no
   reply), pauses that query type for a minute and lists it in

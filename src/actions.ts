@@ -227,8 +227,8 @@ export function buildActions(ctx: ModuleContext): CompanionActionDefinitions<Act
 					label: 'Value as',
 					default: ctx.config.sendsInDb ? 'db' : 'raw',
 					choices: [
-						{ id: 'raw', label: 'Raw 0–127 (calibrated dB not yet available)' },
-						{ id: 'db', label: 'dB (assumes the fader table — unverified for sends)' },
+						{ id: 'raw', label: 'Raw 0–127' },
+						{ id: 'db', label: 'dB' },
 					],
 				},
 				{
