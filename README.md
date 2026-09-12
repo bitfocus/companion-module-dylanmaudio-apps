@@ -1,4 +1,4 @@
-# companion-module-dylanmaudio-dlive
+# companion-module-dylanmaudio
 
 Bitfocus Companion module for the **dLive MIDI Bridge** application —
 control an Allen & Heath dLive with full **state feedback**: mutes,

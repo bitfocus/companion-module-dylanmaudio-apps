@@ -118,9 +118,14 @@ framing the console replies with) that only a desk can settle.
    same module covers other desks as drivers are added, rather than
    becoming another per-console module.
 
-The intended id is **`dylanmaudio-midi-bridge`**; the manifest still
-says `dylanmaudio-dlive` pending a fresh request under the new name
-(which also means renaming this repo and the dev-module symlink).
+The id is **`dylanmaudio`**, decided 2026-09-11 (monorepo
+`docs/brief-companion-control.md` §9) — not the `dylanmaudio-midi-bridge`
+first considered, because the module now serves every dylanmaudio app,
+one Companion connection per app, rather than only the bridge. The
+manifest and this repo carry it from 2026-09-12, with `dylanmaudio-dlive`
+in the manifest's `legacyIds` so existing connections migrate instead of
+being orphaned. A fresh Bitfocus repo request under the new name is
+still to be made.
 
 ### What was actually right in the original reasoning
 

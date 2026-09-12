@@ -1,14 +1,14 @@
 {
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"type": "connection",
-	"id": "dylanmaudio-dlive",
-	"name": "dylanmaudio-dlive",
+	"id": "dylanmaudio",
+	"name": "dylanmaudio",
 	"shortname": "MIDI Bridge",
 	"description": "Control an Allen & Heath dLive through the dLive MIDI Bridge application \u2014 one shared console connection with full state feedback, variables and presets. Requires the MIDI Bridge app; it does not connect to a console directly.",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio-dlive.git",
-	"bugs": "https://github.com/dylanmaudio/companion-module-dylanmaudio-dlive/issues",
+	"repository": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio.git",
+	"bugs": "https://github.com/dylanmaudio/companion-module-dylanmaudio/issues",
 	"maintainers": [
 		{
 			"name": "Dylan Mitrovich",
@@ -21,7 +21,7 @@
 		"apiVersion": "2.1.3",
 		"entrypoint": "../dist/main.js"
 	},
-	"legacyIds": [],
+	"legacyIds": ["dylanmaudio-dlive"],
 	"manufacturer": "dylanmaudio",
 	"products": [
 		"dLive MIDI Bridge"

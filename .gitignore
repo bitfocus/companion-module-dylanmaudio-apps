@@ -10,5 +10,5 @@ pkg/
 !.yarn/versions
 .pnp.*
 .DS_Store
-dylanmaudio-dlive-*.tgz
+dylanmaudio-*.tgz
 local/

@@ -1,5 +1,5 @@
 {
-	"name": "dylanmaudio-dlive",
+	"name": "dylanmaudio",
 	"version": "0.1.0",
 	"description": "Bitfocus Companion module for Allen & Heath dLive with full state feedback, variables and presets",
 	"main": "dist/main.js",
@@ -8,7 +8,7 @@
 	"author": "Dylan Mitrovich (dylanmaudio)",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio-dlive.git"
+		"url": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio.git"
 	},
 	"scripts": {
 		"format": "prettier -w .",
