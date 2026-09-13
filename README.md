@@ -27,6 +27,9 @@ src/state/              ConsoleState (the mirror), SubscriptionRegistry, QuerySc
 src/link-api.ts         LinkApi — the seam the Companion layer talks to
 src/bridge/             BridgeLink — the shipping path: a MIDI Bridge Client API v1 lane
 fixtures/api/           Client API exchange fixtures (authored bridge-side, vendored here)
+fixtures/control/       control API exchange fixtures for the other apps (authored in the monorepo, vendored here)
+src/control/            the other apps: /ctl/v1/ client, and catalogue → actions, feedbacks, variables, presets
+src/util/sse.ts         Server-Sent Events framing
 src/transport/          test harness only: ConsoleTransport, TcpTransport, FakeTransport
 src/link.ts             test harness only: ConsoleLink — codec + state + scheduler + probe + fades
 src/fades.ts            dB-linear emit-on-change ramps

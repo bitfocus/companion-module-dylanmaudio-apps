@@ -48,6 +48,7 @@ import { uploadPageHtml } from './showfile/uploadpage.js'
 import { lvToDb } from './protocol/levels.js'
 import type { ConsoleEvent } from './protocol/intents.js'
 import { describeAppCc } from './protocol/appcc.js'
+import { ControlAppMode } from './control/mode.js'
 
 export type ModuleSchema = {
 	config: ModuleConfig
@@ -78,6 +79,8 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	private pendingFeedbackIds = new Set<string>()
 	private feedbackFlush: NodeJS.Timeout | null = null
 	private readonly uploads = new UploadBuffer()
+	/** Set when this connection controls one of the other apps rather than the dLive. */
+	private control: ControlAppMode | null = null
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -85,12 +88,17 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 
 	async init(config: ModuleConfig): Promise<void> {
 		this.config = normaliseConfig(config)
+		if (this.config.app !== 'bridge') {
+			this.startControlMode()
+			return
+		}
 		this.link = this.makeLink()
 		this.wireLink()
 		this.applyConfig(true)
 	}
 
 	async destroy(): Promise<void> {
+		this.control?.stop()
 		this.link?.stop()
 		if (this.variableFlush) clearTimeout(this.variableFlush)
 		if (this.feedbackFlush) clearTimeout(this.feedbackFlush)
@@ -99,6 +107,31 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	async configUpdated(config: ModuleConfig): Promise<void> {
 		const prev = this.config
 		this.config = normaliseConfig(config)
+		// Switching app type is a different connection entirely: tear down
+		// whatever was running and start the other kind from scratch.
+		const wasControl = prev.app !== 'bridge'
+		const isControl = this.config.app !== 'bridge'
+		if (wasControl || isControl) {
+			const same =
+				wasControl &&
+				isControl &&
+				prev.app === this.config.app &&
+				prev.ctlHost === this.config.ctlHost &&
+				prev.ctlPort === this.config.ctlPort
+			if (same) return
+			this.control?.stop()
+			this.control = null
+			this.link?.stop()
+			this.link?.removeAllListeners()
+			if (isControl) {
+				this.startControlMode()
+				return
+			}
+			this.link = this.makeLink()
+			this.wireLink()
+			this.applyConfig(true)
+			return
+		}
 		const modeChanged = prev.transport !== this.config.transport
 		const directChanged =
 			prev.host !== this.config.host ||
@@ -141,6 +174,13 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	 * of our own gets a real file dialog and the bytes with it.
 	 */
 	async handleHttpRequest(req: CompanionHTTPRequest): Promise<CompanionHTTPResponse> {
+		if (this.control) {
+			return {
+				status: 404,
+				headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+				body: 'The show file page belongs to a MIDI Bridge connection.',
+			}
+		}
 		const path = (req.path ?? '/').replace(/\/+$/, '')
 		try {
 			if (req.method === 'POST' && path.endsWith('/upload')) return await this.httpUploadShow(req)
@@ -201,6 +241,11 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	}
 
 	// ------------------------------------------------------------ wiring
+
+	private startControlMode(): void {
+		this.control = new ControlAppMode(this, this.config.app, this.config.ctlHost, this.config.ctlPort)
+		this.control.start()
+	}
 
 	private makeLink(): LinkApi {
 		if (this.config.transport === 'bridge') {

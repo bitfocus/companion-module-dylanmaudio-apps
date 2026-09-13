@@ -2,8 +2,20 @@ import type { SomeCompanionConfigField } from '@companion-module/base'
 import type { PreampGainRange } from './protocol/levels.js'
 import type { SyncScope } from './link.js'
 import { describeImport, readImport } from './showfile/upload.js'
+import { APP_IDS, CONTROL_APPS, isAppId, type AppId } from './control/registry.js'
 
 export type ModuleConfig = {
+	/**
+	 * Which dylanmaudio app this connection controls (brief-companion-control
+	 * §3: one module, one connection per app). `bridge` is the dLive console
+	 * through MIDI Bridge — everything this module did before the others
+	 * existed. Every other app is driven from the catalogue it publishes.
+	 */
+	app: AppId
+	/** control endpoint of a non-bridge app — loopback by default */
+	ctlHost: string
+	/** 0 = the app's registered port (control/registry.ts) */
+	ctlPort: number
 	/**
 	 * NOT surfaced in the connection UI — this module is bridge-only.
 	 * Direct mode survives solely as the protocol test harness: it is what
@@ -46,6 +58,9 @@ export type ModuleConfig = {
 }
 
 export const DEFAULT_CONFIG: ModuleConfig = {
+	app: 'bridge',
+	ctlHost: '127.0.0.1',
+	ctlPort: 0,
 	transport: 'bridge',
 	bridgeHost: '127.0.0.1',
 	bridgePort: 8765,
@@ -79,6 +94,9 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): ModuleConfig {
 	const c = { ...DEFAULT_CONFIG, ...(raw ?? {}) }
 	if (c.transport !== 'direct') c.transport = 'bridge'
+	if (!isAppId(c.app)) c.app = 'bridge'
+	if (!c.ctlHost) c.ctlHost = '127.0.0.1'
+	c.ctlPort = clampInt(c.ctlPort, 0, 65535, 0)
 	if (!c.bridgeHost) c.bridgeHost = '127.0.0.1'
 	c.bridgePort = clampInt(c.bridgePort, 1, 65535, 8765)
 	c.port = clampInt(c.port, 1, 65535, 51325)
@@ -112,7 +130,61 @@ export interface ConfigFieldContext {
 	showImport?: string
 }
 
+/** Shown only for the MIDI Bridge (dLive) app type. */
+const BRIDGE_ONLY = "$(options:app) == 'bridge'"
+/** Shown only for the other apps. */
+const CONTROL_ONLY = "$(options:app) != 'bridge'"
+
 export function GetConfigFields(ctx: ConfigFieldContext = {}): SomeCompanionConfigField[] {
+	const appField: SomeCompanionConfigField = {
+		type: 'dropdown',
+		id: 'app',
+		label: 'App',
+		tooltip: 'Which dylanmaudio app this connection controls. Add one connection per app.',
+		width: 12,
+		default: 'bridge',
+		choices: APP_IDS.map((id) => ({
+			id,
+			label: id === 'bridge' ? 'MIDI Bridge — the dLive console, with full feedback' : CONTROL_APPS[id].name,
+		})),
+	}
+	const controlFields: SomeCompanionConfigField[] = [
+		{
+			type: 'static-text',
+			id: 'infoControl',
+			width: 12,
+			label: 'App control',
+			value:
+				"This connection controls the app's own buttons and switches, and shows its state. They are built from what the app reports, so a new feature in the app appears here without updating this module. The app must be running on this Mac with <b>Allow Companion control</b> on.",
+			isVisibleExpression: CONTROL_ONLY,
+		},
+		{
+			type: 'textinput',
+			id: 'ctlHost',
+			label: 'App address',
+			tooltip: 'The apps accept connections from this Mac only, for now.',
+			width: 8,
+			default: '127.0.0.1',
+			isVisibleExpression: CONTROL_ONLY,
+		},
+		{
+			type: 'number',
+			id: 'ctlPort',
+			label: 'Port (0 = standard)',
+			tooltip: `0 uses the app's standard port: ${APP_IDS.filter((id) => id !== 'bridge')
+				.map((id) => `${CONTROL_APPS[id].name} ${CONTROL_APPS[id].port}`)
+				.join(', ')}.`,
+			width: 4,
+			min: 0,
+			max: 65535,
+			default: 0,
+			isVisibleExpression: CONTROL_ONLY,
+		},
+	]
+	return [appField, ...controlFields, ...bridgeFields(ctx).map((f) => ({ ...f, isVisibleExpression: BRIDGE_ONLY }))]
+}
+
+function bridgeFields(ctx: ConfigFieldContext): SomeCompanionConfigField[] {
 	return [
 		{
 			type: 'static-text',

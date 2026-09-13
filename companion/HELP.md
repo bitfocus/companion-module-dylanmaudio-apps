@@ -28,10 +28,39 @@ bridge**, and this module inherits them.
    Companion runs on the same machine as the bridge. The token is only
    needed if the bridge is exposing its API over the LAN.
 
+## Other dylanmaudio apps
+
+The same module also controls **Talk Light Trigger**, **Pilot Tone
+Trigger**, **Time Code Tool** and **Console Control**. Add one connection
+per app and choose it under **App**; each app must be running on this Mac
+with **Allow Companion control** switched on in its popover.
+
+Everything for those connections is built from what the app reports about
+itself: each of its buttons and switches becomes an action, each on/off
+or choice becomes a feedback, and every value it shows becomes a variable,
+with ready-made presets. A feature added to an app in an update appears
+here without a new version of this module.
+
+- **Name the connection after the app** — `ptt`, `tlt`, `tct` — because the
+  label is the variable prefix: `$(ptt:state)`, `$(tct:timecode)`.
+- **Port 0** uses the app's standard port (Talk Light 8771, Pilot Tone
+  8772, Time Code Tool 8773, Console Control 8774).
+- **Show-critical controls** — stopping an app, changing Pilot Tone's
+  failback mode — are refused while the app's *Lock show-critical
+  controls* switch is on. The action says so in its description.
+- **When an app says no**, its own reason goes to the Companion log word
+  for word — "Signal is still below threshold — stay on backup".
+
+The connection's status says which of these it is: the app isn't running;
+Companion control is switched off in the app (state still shows, presses
+are refused); or the app and this module speak different versions of the
+control API, in which case update whichever is older.
+
 ## Connection settings
 
 | Setting | Notes |
 |---|---|
+| App | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above |
 | MIDI Bridge address / port / token | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion |
 | Console firmware | Not detectable over MIDI; shown in `$(dlive:firmware)` |
 | Inputs in use / extended types | Bounds the variable grid and the preset library |
