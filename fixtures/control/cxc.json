@@ -1,0 +1,523 @@
+{
+  "schema": "dylanmaudio-control-fixtures/1",
+  "source": "docs/brief-companion-control.md §4.5; server apps/console-control/webview_app.py (generated from shared/show/commands.py's `remote` flag)",
+  "note": "Console Control's real Companion control catalogue, same replay contract as fixtures/control/exchanges.json. The controls are GENERATED from the command registry — a command gains a Companion button by setting remote= in shared/show/commands.py, and this fixture is regenerated to match (apps/console-control/tests/test_control_catalogue.py asserts equality, replays every case on a free port, and pins the generation rules). Never edit a case to make a test green — change the brief first, then both sides.",
+  "app": {
+    "id": "cxc",
+    "name": "Console Control",
+    "version": "<str>"
+  },
+  "catalogue": {
+    "controls": [
+      {
+        "id": "cxc.play",
+        "label": "Play",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.stop",
+        "label": "Stop",
+        "kind": "action",
+        "safety": "critical"
+      },
+      {
+        "id": "cxc.go-to-start",
+        "label": "Go to Start",
+        "kind": "action",
+        "safety": "critical"
+      },
+      {
+        "id": "cxc.record",
+        "label": "Record",
+        "kind": "action",
+        "safety": "critical"
+      },
+      {
+        "id": "cxc.locate",
+        "label": "Locate",
+        "kind": "text",
+        "pattern": "\\d{2}:\\d{2}:\\d{2}[:;]\\d{2}"
+      },
+      {
+        "id": "cxc.conform-console",
+        "label": "Conform Console Now",
+        "kind": "action",
+        "safety": "critical"
+      },
+      {
+        "id": "cxc.panic",
+        "label": "Panic",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.toggle-chase",
+        "label": "Toggle Chase (global)",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.toggle-show-mode",
+        "label": "Toggle Show Mode",
+        "kind": "action",
+        "safety": "critical"
+      },
+      {
+        "id": "cxc.next-cue",
+        "label": "Jump to Next Cue on Lane",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.prev-cue",
+        "label": "Jump to Previous Cue on Lane",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.prev-marker",
+        "label": "Previous Marker",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.next-marker",
+        "label": "Next Marker",
+        "kind": "action"
+      },
+      {
+        "id": "cxc.go-to-marker",
+        "label": "Go to Marker",
+        "kind": "number",
+        "min": 0,
+        "step": 1
+      },
+      {
+        "id": "cxc.go-to-region",
+        "label": "Go to Region",
+        "kind": "number",
+        "min": 0,
+        "step": 1
+      },
+      {
+        "id": "cxc.save",
+        "label": "Save",
+        "kind": "action"
+      }
+    ],
+    "state": [
+      {
+        "key": "cxc.mode",
+        "label": "Mode",
+        "type": "enum",
+        "values": [
+          "edit",
+          "show"
+        ]
+      },
+      {
+        "key": "cxc.transport",
+        "label": "Transport",
+        "type": "enum",
+        "values": [
+          "stopped",
+          "playing",
+          "recording",
+          "armed"
+        ]
+      },
+      {
+        "key": "cxc.timecode",
+        "label": "Timecode",
+        "type": "string",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "cxc.clock_source",
+        "label": "Clock source",
+        "type": "enum",
+        "values": [
+          "internal",
+          "ltc",
+          "mtc"
+        ]
+      },
+      {
+        "key": "cxc.lock",
+        "label": "Sync lock",
+        "type": "string"
+      },
+      {
+        "key": "cxc.chase",
+        "label": "Chase",
+        "type": "bool"
+      },
+      {
+        "key": "cxc.console_matches",
+        "label": "Console matches the timeline",
+        "type": "bool"
+      },
+      {
+        "key": "cxc.console",
+        "label": "Console link",
+        "type": "string"
+      },
+      {
+        "key": "cxc.output",
+        "label": "Output",
+        "type": "enum",
+        "values": [
+          "armed",
+          "shadow",
+          "offline"
+        ]
+      },
+      {
+        "key": "cxc.show_name",
+        "label": "Show",
+        "type": "string"
+      },
+      {
+        "key": "cxc.dirty",
+        "label": "Unsaved changes",
+        "type": "bool"
+      },
+      {
+        "key": "cxc.frame_rate",
+        "label": "Frame rate",
+        "type": "string"
+      }
+    ]
+  },
+  "initial_state": {
+    "cxc.mode": "edit",
+    "cxc.transport": "stopped",
+    "cxc.timecode": "--:--:--:--",
+    "cxc.clock_source": "internal",
+    "cxc.lock": "no_signal",
+    "cxc.chase": false,
+    "cxc.console_matches": false,
+    "cxc.console": "down",
+    "cxc.output": "offline",
+    "cxc.show_name": null,
+    "cxc.dirty": false,
+    "cxc.frame_rate": null
+  },
+  "refusals": {
+    "go-to-marker": "Show Mode: Go to Marker is not available with no markers."
+  },
+  "cases": [
+    {
+      "id": "info.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/info"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ctl": 1,
+          "app": "cxc",
+          "name": "Console Control",
+          "version": "<str>",
+          "catalogue_hash": "<str>",
+          "allowed": true,
+          "locked": false,
+          "seq": "<int>"
+        }
+      }
+    },
+    {
+      "id": "state.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/state"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "seq": "<int>",
+          "values": {
+            "cxc.mode": "edit",
+            "cxc.transport": "stopped",
+            "cxc.timecode": "--:--:--:--",
+            "cxc.clock_source": "internal",
+            "cxc.lock": "no_signal",
+            "cxc.chase": false,
+            "cxc.console_matches": false,
+            "cxc.console": "down",
+            "cxc.output": "offline",
+            "cxc.show_name": null,
+            "cxc.dirty": false,
+            "cxc.frame_rate": null
+          }
+        }
+      }
+    },
+    {
+      "id": "cmd.play",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k1",
+          "control": "cxc.play"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k1",
+          "control": "cxc.play"
+        }
+      },
+      "calls": [
+        [
+          "cxc.play",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "cmd.locate",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k2",
+          "control": "cxc.locate",
+          "value": "00:10:00:00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k2",
+          "value": "00:10:00:00"
+        }
+      },
+      "calls": [
+        [
+          "cxc.locate",
+          {
+            "timecode": "00:10:00:00"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "cmd.locate.bad_value",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k3",
+          "control": "cxc.locate",
+          "value": "ten minutes"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "bad_value"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.go-to-marker",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k4",
+          "control": "cxc.go-to-region",
+          "value": 2
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k4",
+          "value": 2
+        }
+      },
+      "calls": [
+        [
+          "cxc.go-to-region",
+          {
+            "index": 2
+          }
+        ]
+      ]
+    },
+    {
+      "id": "cmd.refused_by_the_app",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k5",
+          "control": "cxc.go-to-marker",
+          "value": 9
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "ok": false,
+          "cid": "k5",
+          "error": {
+            "code": "refused",
+            "message": "Show Mode: Go to Marker is not available with no markers."
+          }
+        }
+      },
+      "calls": [
+        [
+          "cxc.go-to-marker",
+          {
+            "index": 9
+          }
+        ]
+      ],
+      "note": "The replay fake answers this control with the app's refusal shape ({ok:false,error}); the real app refuses e.g. a non-Show-Mode command in Show Mode the same way."
+    },
+    {
+      "id": "cmd.stop.locked",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k6",
+          "control": "cxc.stop"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "locked"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.panic.while_locked",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k7",
+          "control": "cxc.panic"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k7"
+        }
+      },
+      "calls": [
+        [
+          "cxc.panic",
+          null
+        ]
+      ],
+      "note": "PANIC is never critical."
+    },
+    {
+      "id": "cmd.toggle-show-mode.locked",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k8",
+          "control": "cxc.toggle-show-mode"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "locked"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.not_allowed",
+      "setup": {
+        "allowed": false
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k9",
+          "control": "cxc.play"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "not_allowed"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.editing_is_not_offered",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k10",
+          "control": "cxc.insert-cue-unity"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "unknown_control"
+          }
+        }
+      },
+      "calls": [],
+      "note": "Editing verbs have no remote flag, so they are not controls."
+    }
+  ]
+}

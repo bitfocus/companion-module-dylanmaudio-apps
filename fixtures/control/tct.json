@@ -1,0 +1,696 @@
+{
+  "schema": "dylanmaudio-control-fixtures/1",
+  "source": "docs/brief-companion-control.md §4.4; server apps/time-code-tool/webview_app.py",
+  "note": "Time Code Tool's real Companion control catalogue, same replay contract as fixtures/control/exchanges.json. apps/time-code-tool/tests/test_control_catalogue.py asserts the live ControlServer's catalogue and initial state equal 'catalogue'/'initial_state' below verbatim, that every control's handler method exists in ui/bridge-shim.js's METHOD_NAMES, and replays every case on a free port. Never edit a case to make a test green — change the brief first, then both sides.",
+  "app": {
+    "id": "tct",
+    "name": "Time Code Tool",
+    "version": "<str>"
+  },
+  "catalogue": {
+    "controls": [
+      {
+        "id": "tct.run",
+        "label": "Run",
+        "kind": "toggle",
+        "state": "tct.running",
+        "safety": {
+          "off": "critical"
+        }
+      },
+      {
+        "id": "tct.mode",
+        "label": "Mode",
+        "kind": "choice",
+        "state": "tct.mode",
+        "choices": [
+          [
+            "read",
+            "Read timecode"
+          ],
+          [
+            "generate",
+            "Generate timecode"
+          ]
+        ]
+      },
+      {
+        "id": "tct.input",
+        "label": "Input source",
+        "kind": "choice",
+        "state": "tct.source",
+        "choices": [
+          [
+            "ltc",
+            "LTC (audio)"
+          ],
+          [
+            "mtc",
+            "MTC (MIDI)"
+          ]
+        ]
+      },
+      {
+        "id": "tct.mtc_out",
+        "label": "MTC output",
+        "kind": "toggle",
+        "state": "tct.mtc_out",
+        "safety": {
+          "off": "critical"
+        }
+      },
+      {
+        "id": "tct.ltc_out",
+        "label": "LTC output",
+        "kind": "toggle",
+        "state": "tct.ltc_out",
+        "safety": {
+          "off": "critical"
+        }
+      },
+      {
+        "id": "tct.reset_counters",
+        "label": "Reset counters",
+        "kind": "action"
+      },
+      {
+        "id": "tct.generate_start",
+        "label": "Generate from",
+        "kind": "text",
+        "state": "tct.generate_start",
+        "pattern": "\\d{2}:\\d{2}:\\d{2}[:;]\\d{2}"
+      },
+      {
+        "id": "tct.generate_rate",
+        "label": "Generate rate",
+        "kind": "choice",
+        "state": "tct.generate_rate",
+        "choices": [
+          [
+            "23.976",
+            "23.976"
+          ],
+          [
+            "24",
+            "24"
+          ],
+          [
+            "25",
+            "25"
+          ],
+          [
+            "29.97df",
+            "29.97 DF"
+          ],
+          [
+            "29.97nd",
+            "29.97 ND"
+          ],
+          [
+            "30",
+            "30"
+          ]
+        ]
+      }
+    ],
+    "state": [
+      {
+        "key": "tct.running",
+        "label": "Running",
+        "type": "bool"
+      },
+      {
+        "key": "tct.state",
+        "label": "State",
+        "type": "enum",
+        "values": [
+          "stopped",
+          "no_signal",
+          "locked",
+          "freewheel",
+          "clip",
+          "generating"
+        ]
+      },
+      {
+        "key": "tct.mode",
+        "label": "Mode",
+        "type": "enum",
+        "values": [
+          "read",
+          "generate"
+        ]
+      },
+      {
+        "key": "tct.source",
+        "label": "Input source",
+        "type": "enum",
+        "values": [
+          "ltc",
+          "mtc"
+        ]
+      },
+      {
+        "key": "tct.timecode",
+        "label": "Timecode",
+        "type": "string",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "tct.tc_h",
+        "label": "Hours",
+        "type": "number",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "tct.tc_m",
+        "label": "Minutes",
+        "type": "number",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "tct.tc_s",
+        "label": "Seconds",
+        "type": "number",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "tct.tc_f",
+        "label": "Frames",
+        "type": "number",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "tct.rate",
+        "label": "Frame rate",
+        "type": "string"
+      },
+      {
+        "key": "tct.discontinuities",
+        "label": "Discontinuities",
+        "type": "number"
+      },
+      {
+        "key": "tct.level_db",
+        "label": "Level",
+        "type": "number",
+        "unit": "dB",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "tct.mtc_out",
+        "label": "MTC output",
+        "type": "bool"
+      },
+      {
+        "key": "tct.ltc_out",
+        "label": "LTC output",
+        "type": "bool"
+      },
+      {
+        "key": "tct.generate_start",
+        "label": "Generate from",
+        "type": "string"
+      },
+      {
+        "key": "tct.generate_rate",
+        "label": "Generate rate",
+        "type": "enum",
+        "values": [
+          "23.976",
+          "24",
+          "25",
+          "29.97df",
+          "29.97nd",
+          "30"
+        ]
+      }
+    ]
+  },
+  "initial_state": {
+    "tct.running": false,
+    "tct.state": "stopped",
+    "tct.mode": "read",
+    "tct.source": "ltc",
+    "tct.timecode": "--:--:--:--",
+    "tct.tc_h": null,
+    "tct.tc_m": null,
+    "tct.tc_s": null,
+    "tct.tc_f": null,
+    "tct.rate": null,
+    "tct.discontinuities": 0,
+    "tct.level_db": null,
+    "tct.mtc_out": false,
+    "tct.ltc_out": false,
+    "tct.generate_start": "01:00:00:00",
+    "tct.generate_rate": "25"
+  },
+  "cases": [
+    {
+      "id": "info.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/info"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ctl": 1,
+          "app": "tct",
+          "name": "Time Code Tool",
+          "version": "<str>",
+          "catalogue_hash": "<str>",
+          "allowed": true,
+          "locked": false,
+          "seq": "<int>"
+        }
+      }
+    },
+    {
+      "id": "state.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/state"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "seq": "<int>",
+          "values": {
+            "tct.running": false,
+            "tct.state": "stopped",
+            "tct.mode": "read",
+            "tct.source": "ltc",
+            "tct.timecode": "--:--:--:--",
+            "tct.tc_h": null,
+            "tct.tc_m": null,
+            "tct.tc_s": null,
+            "tct.tc_f": null,
+            "tct.rate": null,
+            "tct.discontinuities": 0,
+            "tct.level_db": null,
+            "tct.mtc_out": false,
+            "tct.ltc_out": false,
+            "tct.generate_start": "01:00:00:00",
+            "tct.generate_rate": "25"
+          }
+        }
+      }
+    },
+    {
+      "id": "cmd.run.on",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k1",
+          "control": "tct.run",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k1",
+          "control": "tct.run",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "tct.run",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.mode.generate",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k2",
+          "control": "tct.mode",
+          "value": "generate"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k2",
+          "value": "generate"
+        }
+      },
+      "calls": [
+        [
+          "tct.run_mode",
+          "generate"
+        ]
+      ],
+      "note": "The replay fake is never 'running'; the refusal while running is an in-process test."
+    },
+    {
+      "id": "cmd.input.next",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k3",
+          "control": "tct.input",
+          "value": "next"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k3",
+          "value": "mtc"
+        }
+      },
+      "calls": [
+        [
+          "tct.input_source",
+          "mtc"
+        ]
+      ]
+    },
+    {
+      "id": "cmd.mtc_out.toggle",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k4",
+          "control": "tct.mtc_out",
+          "value": "toggle"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k4",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "tct.mtc_out",
+          true
+        ]
+      ],
+      "note": "initial_state has tct.mtc_out false, so toggle resolves to on."
+    },
+    {
+      "id": "cmd.ltc_out.on",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k5",
+          "control": "tct.ltc_out",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k5",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "tct.ltc_out",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.ltc_out.off.locked",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k6",
+          "control": "tct.ltc_out",
+          "value": "off"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "ok": false,
+          "cid": "k6",
+          "error": {
+            "code": "locked"
+          }
+        }
+      },
+      "calls": [],
+      "note": "Only switching an output OFF is critical."
+    },
+    {
+      "id": "cmd.ltc_out.on.while_locked",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k7",
+          "control": "tct.ltc_out",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "tct.ltc_out",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.reset_counters",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k8",
+          "control": "tct.reset_counters"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k8"
+        }
+      },
+      "calls": [
+        [
+          "tct.reset_counters",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "cmd.generate_start.ok",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k9",
+          "control": "tct.generate_start",
+          "value": "09:59:50:00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "value": "09:59:50:00"
+        }
+      },
+      "calls": [
+        [
+          "tct.rtgen_start",
+          "09:59:50:00"
+        ]
+      ]
+    },
+    {
+      "id": "cmd.generate_start.bad_value",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k10",
+          "control": "tct.generate_start",
+          "value": "10:00"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "bad_value"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.generate_start.not_a_timecode",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k11",
+          "control": "tct.generate_start",
+          "value": "99:99:99:99"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "refused",
+            "message": "<str>"
+          }
+        }
+      },
+      "calls": [],
+      "note": "Matches the pattern, fails Timecode.parse — the app's own refusal passes through."
+    },
+    {
+      "id": "cmd.generate_rate.ok",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k12",
+          "control": "tct.generate_rate",
+          "value": "30"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "value": "30"
+        }
+      },
+      "calls": [
+        [
+          "tct.rtgen_rate",
+          "30"
+        ]
+      ]
+    },
+    {
+      "id": "cmd.generate_rate.bad_value",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k13",
+          "control": "tct.generate_rate",
+          "value": "48"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "bad_value"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.not_allowed",
+      "setup": {
+        "allowed": false
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k14",
+          "control": "tct.run",
+          "value": "off"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "not_allowed"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.unknown_control",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k15",
+          "control": "tct.render_wav"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "unknown_control"
+          }
+        }
+      },
+      "calls": [],
+      "note": "Render WAV opens a file dialog and is deliberately not a control."
+    }
+  ]
+}
