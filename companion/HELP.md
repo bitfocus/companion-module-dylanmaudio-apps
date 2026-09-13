@@ -28,6 +28,22 @@ bridge**, and this module inherits them.
    Companion runs on the same machine as the bridge. The token is only
    needed if the bridge is exposing its API over the LAN.
 
+### The bridge app's own controls
+
+With MIDI Bridge 1.1.9 or later, this connection also controls the bridge
+app itself: **Run** (start or stop the bridge), **Restart bridge** and
+**Auto-reconnect**. Its state shows as `$(dlive:bridge_state)` (stopped ·
+not connected · connecting · connected · error), `$(dlive:bridge_running)`,
+`$(dlive:bridge_msg_rate)` and a few more, with presets under *MIDI
+Bridge*. These go to the bridge's menu-bar side on port 8770, so they
+still work while the bridge itself is stopped. The connection status then
+reads "MIDI Bridge is stopped" instead of "nothing answering".
+
+Turn on **Allow Companion control** in the bridge's popover. Stopping and
+restarting are refused while its *Lock show-critical controls* switch is
+on. An older bridge simply doesn't offer these, and console control works
+as before.
+
 ## Other dylanmaudio apps
 
 The same module also controls **Talk Light Trigger**, **Pilot Tone
@@ -108,6 +124,7 @@ preset, and the variables `$(tlt:talk_active)`, `$(tlt:talk_flash_armed)`,
 | App | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above |
 | Talk flash rate / cooldown / TALK page number | Talk Light only — see *Talk flash* above |
 | MIDI Bridge address / port / token | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion |
+| Bridge app control port | 0 = the standard 8770, on the same address. For Run, Restart and Auto-reconnect (MIDI Bridge 1.1.9+) |
 | Console firmware | Not detectable over MIDI; shown in `$(dlive:firmware)` |
 | Inputs in use / extended types | Bounds the variable grid and the preset library |
 | Scene Go / Next / Previous | The CC number + value you assigned on the console. 0/0 = not assigned |

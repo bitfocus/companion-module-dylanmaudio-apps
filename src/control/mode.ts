@@ -4,8 +4,8 @@
  * endpoint (brief-companion-control.md §3). Everything Companion shows is
  * rebuilt from the app's catalogue, whenever the catalogue changes.
  *
- * The MIDI Bridge's own start/stop endpoint is the same shape and joins
- * the existing dLive connection type in a later step (brief §6, step 2).
+ * The MIDI Bridge's own endpoint is the same shape, but it lives inside the
+ * MIDI Bridge connection beside the console link: see bridgectl.ts.
  */
 
 import { InstanceBase, InstanceStatus, type CompanionVariableValues, type LogLevel } from '@companion-module/base'

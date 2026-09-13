@@ -41,6 +41,8 @@ export type ModuleConfig = {
 	transport: 'direct' | 'bridge'
 	bridgeHost: string
 	bridgePort: number
+	/** The bridge app's own /ctl/v1 endpoint, on bridgeHost. 0 = its standard 8770 */
+	bridgeCtlPort: number
 	bridgeToken: string
 	host: string
 	port: number
@@ -83,6 +85,7 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	transport: 'bridge',
 	bridgeHost: '127.0.0.1',
 	bridgePort: 8765,
+	bridgeCtlPort: 0,
 	bridgeToken: '',
 	host: '',
 	port: 51325,
@@ -121,6 +124,7 @@ export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): 
 	c.talkFlashPage = clampInt(c.talkFlashPage, 0, 999, TALK_FLASH_DEFAULT_PAGE)
 	if (!c.bridgeHost) c.bridgeHost = '127.0.0.1'
 	c.bridgePort = clampInt(c.bridgePort, 1, 65535, 8765)
+	c.bridgeCtlPort = clampInt(c.bridgeCtlPort, 0, 65535, 0)
 	c.port = clampInt(c.port, 1, 65535, 51325)
 	c.surfacePort = clampInt(c.surfacePort, 1, 65535, 51328)
 	c.baseChannel = clampInt(c.baseChannel, 1, 12, 12)
@@ -273,6 +277,17 @@ function bridgeFields(ctx: ConfigFieldContext): SomeCompanionConfigField[] {
 			default: '127.0.0.1',
 		},
 		{ type: 'number', id: 'bridgePort', label: 'Bridge port', width: 4, min: 1, max: 65535, default: 8765 },
+		{
+			type: 'number',
+			id: 'bridgeCtlPort',
+			label: 'Bridge app control port (0 = 8770)',
+			tooltip:
+				"The MIDI Bridge app's own controls — Run, Restart, Auto-reconnect — on the address above. Needs MIDI Bridge 1.1.9 or later; an older bridge just doesn't offer them.",
+			width: 4,
+			min: 0,
+			max: 65535,
+			default: 0,
+		},
 		{
 			type: 'textinput',
 			id: 'bridgeToken',

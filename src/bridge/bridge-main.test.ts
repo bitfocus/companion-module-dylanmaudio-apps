@@ -6,8 +6,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createServer, type Server } from 'node:http'
 import type { CompanionActionDefinitions, CompanionVariableValues } from '@companion-module/base'
+import { createServer as createTcpServer } from 'node:net'
 import DliveInstance from '../main.js'
 import { DEFAULT_CONFIG } from '../config.js'
+import { CtlMock, load } from '../../test/ctlmock.js'
 
 class Host {
 	actions: CompanionActionDefinitions<never> = {} as never
@@ -19,7 +21,7 @@ class Host {
 		label: 'dLive-test',
 		upgradeScripts: [],
 		saveConfig: () => {},
-		updateStatus: (s: string) => this.statuses.push(s),
+		updateStatus: (s: string, m?: string | null) => this.statuses.push(m ? `${s}: ${m}` : s),
 		oscSend: () => {},
 		recordAction: () => {},
 		setActionDefinitions: (a: CompanionActionDefinitions<never>) => (this.actions = a),
@@ -113,4 +115,51 @@ describe('bridge mode through DliveInstance', () => {
 		})
 		await inst.destroy()
 	})
+
+	it('merges the bridge app control into the console connection, with bridge_ variables', async () => {
+		const ctl = new CtlMock(load('bridge.json'))
+		await ctl.start()
+		const host = new Host()
+		const inst = new DliveInstance(host.context)
+		await inst.init({
+			...DEFAULT_CONFIG,
+			bridgeHost: '127.0.0.1',
+			bridgePort: port,
+			bridgeCtlPort: ctl.port,
+			inputs: 16,
+		})
+		await waitFor(() => 'ctl_bridge__run' in host.actions, 'bridge app actions merged')
+		expect(host.actions).toHaveProperty('fader')
+		expect(host.actions).toHaveProperty('ctl_bridge__restart')
+		await waitFor(() => host.vars.bridge_state === 'stopped', 'bridge state variable')
+		await waitFor(() => inst.link.isOk, 'console link still ok')
+		await inst.destroy()
+		await ctl.stop()
+	})
+
+	it('says the bridge is stopped, rather than that nothing answers, while its core is down', async () => {
+		const ctl = new CtlMock(load('bridge.json'))
+		await ctl.start()
+		const host = new Host()
+		const inst = new DliveInstance(host.context)
+		const nothing = await closedPort()
+		await inst.init({
+			...DEFAULT_CONFIG,
+			bridgeHost: '127.0.0.1',
+			bridgePort: nothing,
+			bridgeCtlPort: ctl.port,
+			inputs: 16,
+		})
+		await waitFor(() => host.statuses.some((s) => s.includes('MIDI Bridge is stopped')), 'stopped status')
+		await inst.destroy()
+		await ctl.stop()
+	})
 })
+
+async function closedPort(): Promise<number> {
+	const s = createTcpServer()
+	await new Promise<void>((r) => s.listen(0, '127.0.0.1', r))
+	const p = (s.address() as { port: number }).port
+	await new Promise<void>((r) => s.close(() => r()))
+	return p
+}

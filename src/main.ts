@@ -49,6 +49,7 @@ import { lvToDb } from './protocol/levels.js'
 import type { ConsoleEvent } from './protocol/intents.js'
 import { describeAppCc } from './protocol/appcc.js'
 import { ControlAppMode } from './control/mode.js'
+import { BridgeAppControl } from './control/bridgectl.js'
 
 export type ModuleSchema = {
 	config: ModuleConfig
@@ -81,6 +82,10 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	private readonly uploads = new UploadBuffer()
 	/** Set when this connection controls one of the other apps rather than the dLive. */
 	private control: ControlAppMode | null = null
+	/** MIDI Bridge connections through the bridge: the bridge app's own controls (bridgectl.ts). */
+	private bridgeApp: BridgeAppControl | null = null
+	/** The console link's last status, which the connection shows unless the bridge app knows better. */
+	private linkStatus: { status: LinkStatus; message: string | null } = { status: 'connecting', message: null }
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -94,11 +99,13 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		}
 		this.link = this.makeLink()
 		this.wireLink()
+		this.startBridgeApp()
 		this.applyConfig(true)
 	}
 
 	async destroy(): Promise<void> {
 		this.control?.stop()
+		this.bridgeApp?.stop()
 		this.link?.stop()
 		if (this.variableFlush) clearTimeout(this.variableFlush)
 		if (this.feedbackFlush) clearTimeout(this.feedbackFlush)
@@ -130,12 +137,14 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 			this.control = null
 			this.link?.stop()
 			this.link?.removeAllListeners()
+			this.stopBridgeApp()
 			if (isControl) {
 				this.startControlMode()
 				return
 			}
 			this.link = this.makeLink()
 			this.wireLink()
+			this.startBridgeApp()
 			this.applyConfig(true)
 			return
 		}
@@ -166,6 +175,8 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 				extendedTypes: this.config.extendedTypes,
 			})
 		}
+		if (modeChanged || prev.bridgeHost !== this.config.bridgeHost || prev.bridgeCtlPort !== this.config.bridgeCtlPort)
+			this.startBridgeApp()
 		this.applyConfig(false)
 	}
 
@@ -258,6 +269,55 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		this.control.start()
 	}
 
+	/** (Re)start the bridge app's control client — only when the console side goes through the bridge. */
+	private startBridgeApp(): void {
+		this.stopBridgeApp()
+		if (this.config.transport !== 'bridge') return
+		const app = new BridgeAppControl(this, this.config.bridgeHost, this.config.bridgeCtlPort)
+		app.on('definitions', () => {
+			this.defineActions()
+			this.defineFeedbacks()
+			this.publishDefinitions()
+		})
+		app.on('bridgeState', () => this.applyStatus())
+		this.bridgeApp = app
+		app.start()
+	}
+
+	private stopBridgeApp(): void {
+		this.bridgeApp?.stop()
+		this.bridgeApp = null
+	}
+
+	/**
+	 * The connection shows the console link's status. While that link is down,
+	 * the bridge app can say why: its core is stopped, or has failed. That
+	 * tells the operator more than "nothing answering on 8765".
+	 */
+	private applyStatus(): void {
+		const { status, message } = this.linkStatus
+		const state = this.bridgeApp?.bridgeState
+		if (status !== 'ok' && state === 'stopped') {
+			this.updateStatus(
+				InstanceStatus.Disconnected,
+				'MIDI Bridge is stopped. Start it from its menu-bar icon, or with a Companion button.',
+			)
+		} else if (status !== 'ok' && state === 'error') {
+			const hint = this.bridgeApp?.errorHint
+			this.updateStatus(InstanceStatus.ConnectionFailure, `MIDI Bridge stopped with an error${hint ? `: ${hint}` : ''}`)
+		} else {
+			this.updateStatus(STATUS_MAP[status], message)
+		}
+	}
+
+	private defineActions(): void {
+		this.setActionDefinitions({ ...buildActions(this), ...this.bridgeApp?.actions() })
+	}
+
+	private defineFeedbacks(): void {
+		this.setFeedbackDefinitions({ ...buildFeedbacks(this), ...this.bridgeApp?.feedbacks() })
+	}
+
 	private makeLink(): LinkApi {
 		if (this.config.transport === 'bridge') {
 			return new BridgeLink({
@@ -294,7 +354,8 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 
 	private wireLink(): void {
 		this.link.on('status', (status, message) => {
-			this.updateStatus(STATUS_MAP[status], message ?? null)
+			this.linkStatus = { status, message: message ?? null }
+			this.applyStatus()
 			this.queueVariables({ connected: this.link.state.connected })
 		})
 		this.link.on('log', (level, message) => this.log(level, message))
@@ -308,8 +369,8 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		this.actionsMap = map.entries
 		this.scope = { inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }
 
-		this.setActionDefinitions(buildActions(this))
-		this.setFeedbackDefinitions(buildFeedbacks(this))
+		this.defineActions()
+		this.defineFeedbacks()
 		void this.reloadShowFile().then(() => this.publishDefinitions())
 		if (this.config.transport === 'bridge' && !this.config.bridgeHost) {
 			this.updateStatus(
@@ -322,10 +383,14 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	}
 
 	private publishDefinitions(): void {
-		this.setVariableDefinitions(variableDefinitions(this.scope, this.link.state.sceneNames.keys()))
+		this.setVariableDefinitions({
+			...variableDefinitions(this.scope, this.link.state.sceneNames.keys()),
+			...this.bridgeApp?.variables(),
+		})
 		this.setVariableValues(allVariableValues(this.link.state, this.scope, this.meta()))
 		const { sections, presets } = buildPresets(this, this.scope)
-		this.setPresetDefinitions(sections, presets)
+		const app = this.bridgeApp?.presets()
+		this.setPresetDefinitions(app ? [...sections, ...app.sections] : sections, { ...presets, ...app?.presets })
 		this.link.subscriptions.clear()
 		this.checkAllFeedbacks()
 	}
@@ -491,7 +556,7 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		const merged = [...manual.entries, ...[...fromShow.values()].filter((a) => !seen.has(`${a.cc}/${a.value}`))]
 		const changed = JSON.stringify(merged) !== JSON.stringify(this.actionsMap)
 		this.actionsMap = merged
-		if (changed) this.setActionDefinitions(buildActions(this))
+		if (changed) this.defineActions()
 		this.queueVariables({ scene_current_name: this.link.state.sceneName(this.link.state.currentScene) })
 	}
 }

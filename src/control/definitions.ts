@@ -280,18 +280,42 @@ function valueLabels(cat: Catalogue, key: string): Map<string, string> {
 
 // ---------------------------------------------------------------- variables
 
-export function buildControlVariables(cat: Catalogue): CompanionVariableDefinitions<VariablesSchema> {
+/** How a state key is named as a Companion variable. */
+export type VariableNaming = (key: string) => string
+
+/** The app connections' naming: the connection label already says which app, so `ptt.state` is `$(ptt:state)`. */
+const bareNaming =
+	(cat: Catalogue): VariableNaming =>
+	(key) =>
+		variableId(cat.app, key)
+
+/**
+ * Keeps the app prefix: `bridge.state` is `bridge_state`. For the MIDI Bridge
+ * connection, where the bridge's own state sits beside the console's
+ * variables and a bare `state` or `version` would say nothing.
+ */
+export const prefixedNaming: VariableNaming = (key) => key.replace(/[^A-Za-z0-9_]/g, '_')
+
+export function buildControlVariables(
+	cat: Catalogue,
+	naming: VariableNaming = bareNaming(cat),
+	meta: Record<string, string> = META_VARIABLES,
+): CompanionVariableDefinitions<VariablesSchema> {
 	const defs: Record<string, { name: string }> = {}
-	for (const [id, name] of Object.entries(META_VARIABLES)) defs[id] = { name }
-	for (const s of cat.state) defs[variableId(cat.app, s.key)] = { name: s.unit ? `${s.label} (${s.unit})` : s.label }
+	for (const [id, name] of Object.entries(meta)) defs[id] = { name }
+	for (const s of cat.state) defs[naming(s.key)] = { name: s.unit ? `${s.label} (${s.unit})` : s.label }
 	return defs
 }
 
 /** State values as variable values: unknown is empty, and a level reads to two decimals. */
-export function controlVariableValues(cat: Catalogue, values: Record<string, StateValue>): CompanionVariableValues {
+export function controlVariableValues(
+	cat: Catalogue,
+	values: Record<string, StateValue>,
+	naming: VariableNaming = bareNaming(cat),
+): CompanionVariableValues {
 	const out: CompanionVariableValues = {}
 	for (const [k, v] of Object.entries(values)) {
-		out[variableId(cat.app, k)] =
+		out[naming(k)] =
 			v === null ? undefined : typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 100) / 100 : v
 	}
 	return out
@@ -302,10 +326,11 @@ export function controlVariableValues(cat: Catalogue, values: Record<string, Sta
 export function buildControlPresets(
 	cat: Catalogue,
 	label: string,
+	naming: VariableNaming = bareNaming(cat),
 ): { sections: CompanionPresetSection<ModuleSchema>[]; presets: CompanionPresetDefinitions<ModuleSchema> } {
 	const presets: CompanionPresetDefinitions<ModuleSchema> = {}
 	const ids: string[] = []
-	const variable = (key: string) => `$(${label}:${variableId(cat.app, key)})`
+	const variable = (key: string) => `$(${label}:${naming(key)})`
 	const style = (text: string) => ({ text, textExpression: false, size: 'auto' as const, color: WHITE, bgcolor: DARK })
 	const add = (id: string, p: CompanionPresetDefinitions<ModuleSchema>[string]) => {
 		presets[id] = p

@@ -18,6 +18,7 @@ import {
 	controlVariableValues,
 	enumFeedbackId,
 	feedbackIdsForKey,
+	prefixedNaming,
 	variableId,
 } from './definitions.js'
 import type { Catalogue, CmdValue, StateValue } from './types.js'
@@ -427,6 +428,22 @@ describe('MIDI Bridge app control (fixtures/control/bridge.json)', () => {
 		expect(await pressIn(bc, 'ctl_bridge__run', { mode: 'off' })).toEqual(wireIn(bf, 'cmd.run.off'))
 		expect(await pressIn(bc, 'ctl_bridge__restart', {})).toEqual(wireIn(bf, 'cmd.restart'))
 		expect(await pressIn(bc, 'ctl_bridge__autoreconnect', { mode: 'off' })).toEqual(wireIn(bf, 'cmd.autoreconnect.off'))
+	})
+
+	it('in the MIDI Bridge connection its variables keep the bridge_ prefix', () => {
+		expect(Object.keys(buildControlVariables(bc, prefixedNaming, {})).sort()).toEqual([
+			'bridge_activity',
+			'bridge_autoreconnect',
+			'bridge_console',
+			'bridge_error_hint',
+			'bridge_msg_rate',
+			'bridge_running',
+			'bridge_state',
+			'bridge_version',
+		])
+		expect(controlVariableValues(bc, { 'bridge.state': 'connected' }, prefixedNaming)).toEqual({
+			bridge_state: 'connected',
+		})
 	})
 
 	it('stopping and restarting are show-critical; auto-reconnect is not', () => {
