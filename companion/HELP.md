@@ -56,11 +56,57 @@ Companion control is switched off in the app (state still shows, presses
 are refused); or the app and this module speak different versions of the
 control API, in which case update whichever is older.
 
+## Talk flash (Talk Light Trigger)
+
+While Talk Light reports talk, your Stream Decks can jump to a **TALK
+page** whose keys blink, so a talkback call can't be missed. The page and
+the two triggers that drive it ship as one file,
+[`talk-flash.companionconfig`](https://github.com/dylanmaudio/companion-module-dylanmaudio/blob/main/companion/talk-flash.companionconfig).
+
+**Importing it**
+
+1. **Import / Export** → choose the file → the **Buttons** tab (not Full
+   Import, which replaces your configuration). Source page **1 (TALK)**,
+   destination **[ Insert new page ]**. Under *Import Connections
+   Behavior*, pick your Talk Light connection — or **[ Create new
+   connection ]**, which arrives set up for Talk Light on its standard port.
+   Don't leave it linked to a MIDI Bridge connection.
+2. Same file, the **Triggers** tab: select both, the same connection
+   choice, **Add to existing triggers**.
+3. In the Talk Light connection, set **TALK page number** to the page the
+   import created. Until you do (0 = off), TALK keys still blink but no
+   deck is switched.
+
+**What it does**
+
+- **Talk starts** — *Talk flash: talk start* sends the deck to the TALK
+  page. Every TALK key blinks together, off one timer: 2 Hz by default,
+  adjustable, never faster than 3 Hz.
+- **Talk ends** — *Talk flash: talk end* sends the deck back to the page
+  it was on.
+- **EXIT** (top-left) sends the deck it is pressed on back straight away
+  and starts a cooldown: 10 s by default, adjustable, 0 for none. A talk
+  that starts during the cooldown doesn't switch any deck, so an operator
+  who dismissed one call isn't pulled straight back by the next.
+
+**More than one deck.** The triggers act on surface index 0, the first
+deck in Companion's Surfaces list. For each other deck, duplicate both
+triggers and change the surface index. EXIT's "already went back" is
+shared, not per deck: after EXIT on one deck, the others stay on the TALK
+page when talk ends — press EXIT on each, or step them back by hand.
+
+The pieces are ordinary module parts you can reuse on any page: the
+**Talk flash** feedback, the **Talk flash: exit** action, the **TALK key**
+preset, and the variables `$(tlt:talk_active)`, `$(tlt:talk_flash_armed)`,
+`$(tlt:talk_flash_exited)`, `$(tlt:talk_flash_took_over)` and
+`$(tlt:talk_page)`.
+
 ## Connection settings
 
 | Setting | Notes |
 |---|---|
 | App | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above |
+| Talk flash rate / cooldown / TALK page number | Talk Light only — see *Talk flash* above |
 | MIDI Bridge address / port / token | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion |
 | Console firmware | Not detectable over MIDI; shown in `$(dlive:firmware)` |
 | Inputs in use / extended types | Bounds the variable grid and the preset library |
