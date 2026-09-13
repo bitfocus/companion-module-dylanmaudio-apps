@@ -22,6 +22,7 @@ import {
 } from './definitions.js'
 import { CONTROL_APPS, type AppId } from './registry.js'
 import { TalkFlash } from './talkflash.js'
+import { timecodeReadoutPresets } from './readout-defs.js'
 import {
 	TALK_FLASH_FEEDBACK,
 	TALK_FLASH_PRESET,
@@ -159,6 +160,11 @@ export class ControlAppMode {
 		if (flash) {
 			Object.assign(built.presets, talkFlashPresets())
 			built.sections.push({ id: 'talk_flash', name: 'Talk flash', definitions: [TALK_FLASH_PRESET] })
+		}
+		const readout = this.app === 'tct' ? timecodeReadoutPresets(cat, this.host.label) : null
+		if (readout) {
+			Object.assign(built.presets, readout.presets)
+			built.sections.push(readout.section)
 		}
 		this.host.setPresetDefinitions(built.sections, built.presets)
 		if (flash)

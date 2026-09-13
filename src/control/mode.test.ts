@@ -134,6 +134,9 @@ describe('a Time Code Tool connection', () => {
 		await waitFor(() => host.vars.timecode === '10:00:00:12', 'timecode')
 		expect(host.vars).toMatchObject({ state: 'locked', tc_h: 10, tc_f: 12 })
 		expect(host.checked).toContain('st_tct__state__is')
+		expect(Object.keys(host.presets)).toEqual(
+			expect.arrayContaining(['p_tct__readout__hh', 'p_tct__readout__mm', 'p_tct__readout__ss', 'p_tct__readout__ff']),
+		)
 		mode.stop()
 		await mock.stop()
 	})
