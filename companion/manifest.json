@@ -3,8 +3,8 @@
 	"type": "connection",
 	"id": "dylanmaudio",
 	"name": "dylanmaudio",
-	"shortname": "MIDI Bridge",
-	"description": "Control an Allen & Heath dLive through the dLive MIDI Bridge application \u2014 one shared console connection with full state feedback, variables and presets. Requires the MIDI Bridge app; it does not connect to a console directly.",
+	"shortname": "dylanmaudio",
+	"description": "Control the dylanmaudio apps: an Allen & Heath dLive through the dLive MIDI Bridge (one shared console connection with full state feedback), plus Talk Light Trigger, Pilot Tone Trigger, Time Code Tool and Console Control. Requires the apps; it does not connect to a console directly.",
 	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio.git",
@@ -24,7 +24,11 @@
 	"legacyIds": ["dylanmaudio-dlive"],
 	"manufacturer": "dylanmaudio",
 	"products": [
-		"dLive MIDI Bridge"
+		"dLive MIDI Bridge",
+		"Talk Light Trigger",
+		"Pilot Tone Trigger",
+		"Time Code Tool",
+		"Console Control"
 	],
 	"keywords": [
 		"Audio",
@@ -33,6 +37,9 @@
 		"dLive",
 		"Allen & Heath",
 		"MIDI",
-		"Bridge"
+		"Bridge",
+		"Talk light",
+		"Pilot tone",
+		"Timecode"
 	]
 }
