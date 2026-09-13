@@ -113,6 +113,11 @@ class Sim {
 	port = 0
 	log = ''
 	async start(baseChannel: number): Promise<void> {
+		// The harness picks the port. `--port 0` (let the OS choose) used to work,
+		// but the simulator's exclusive-mode change (cceecfd) now treats 0 as a
+		// fixed port that is "already in use" and exits. Asking for a free port
+		// ourselves also stops this suite depending on how the sim reads 0.
+		const port = await closedPort()
 		this.proc = spawn(
 			'python3',
 			[
@@ -120,6 +125,12 @@ class Sim {
 				'-m',
 				'sim.virtual_console',
 				'--port',
+				String(port),
+				// The simulator also opens the Surface port (51328) by default now,
+				// and a second instance can't — one left running anywhere on this Mac
+				// takes the whole suite down, reported against the wrong port. This
+				// suite never uses the Surface socket, so it opts out (0 = none).
+				'--surface-port',
 				'0',
 				'--base-channel',
 				String(baseChannel),
@@ -250,9 +261,10 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 		await idle(inst)
 		const fb = host.place('fb-fader5', 'fader_db', { type: 'input', index: 5 })
 		const sentBefore = inst.link.scheduler.stats.sent
-		// Firmware 2.12 broadcasts the complete triple (session §3.2). This sim
-		// still models 1.94 and only pings on `fader`, so the triple is played in
-		// by hand: 63 = select input 12, 62 = parameter 0x17 (fader), 06 = level.
+		// The console broadcasts the complete triple (session §3.2). Here it is
+		// played in by hand, one CC per command, to prove the decoder assembles a
+		// triple whose legs arrive as separate messages: 63 = select input 5
+		// (address 4), 62 = parameter 0x17 (fader), 06 = level.
 		sim.cmd('cc 99 4')
 		sim.cmd('cc 98 23')
 		sim.cmd('cc 6 95')
