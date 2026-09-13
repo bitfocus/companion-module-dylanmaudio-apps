@@ -64,6 +64,49 @@ describe('TalkFlash', () => {
 		expect(armed).toEqual([false, true])
 	})
 
+	it('EXIT marks this talk as exited, and the next talk clears it', () => {
+		const exited: boolean[] = []
+		const f = new TalkFlash({
+			hz: 2,
+			cooldownS: 10,
+			onLit: () => undefined,
+			onArmed: () => undefined,
+			onExited: (e) => exited.push(e),
+		})
+		f.setTalk(true)
+		f.exit()
+		expect(f.exited).toBe(true)
+		f.exit() // a second press changes nothing
+		f.setTalk(false)
+		expect(f.exited).toBe(true) // still true as talk ends: that is when "Talk end" reads it
+		f.setTalk(true)
+		expect(f.exited).toBe(false)
+		expect(exited).toEqual([true, false])
+		f.stop()
+	})
+
+	it('a talk that starts while armed took the decks over; one during the cooldown did not', () => {
+		flash.setTalk(true)
+		expect(flash.tookOver).toBe(true)
+		flash.exit()
+		flash.setTalk(false)
+		expect(flash.tookOver).toBe(true) // unchanged as talk ends — "Talk end" reads it then
+		flash.setTalk(true) // inside the 10 s cooldown
+		expect(flash.tookOver).toBe(false)
+		flash.setTalk(false)
+		vi.advanceTimersByTime(10_000)
+		flash.setTalk(true)
+		expect(flash.tookOver).toBe(true)
+	})
+
+	it('with no TALK page set, a talk flashes but takes no deck over', () => {
+		const pageless = new TalkFlash({ onLit: () => undefined, onArmed: () => undefined, canTakeOver: () => false })
+		pageless.setTalk(true)
+		expect(pageless.armed).toBe(true)
+		expect(pageless.tookOver).toBe(false)
+		pageless.stop()
+	})
+
 	it('a zero cooldown never disarms', () => {
 		flash.configure(2, 0)
 		flash.exit()

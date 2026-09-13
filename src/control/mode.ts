@@ -57,6 +57,7 @@ const STATUS: Record<ControlStatus, InstanceStatus> = {
 export interface ControlModeOptions {
 	talkFlashHz: number
 	talkFlashCooldownS: number
+	talkFlashPage: number
 }
 
 /** The Talk Light state key the talk flash follows, and the value that means talking. */
@@ -69,6 +70,7 @@ export class ControlAppMode {
 	readonly flash: TalkFlash | null
 	private catalogue: Catalogue | null = null
 	private readonly name: string
+	private talkPage: number
 
 	constructor(
 		private readonly host: ControlHost,
@@ -78,6 +80,7 @@ export class ControlAppMode {
 		opts: ControlModeOptions,
 	) {
 		this.name = CONTROL_APPS[app].name
+		this.talkPage = opts.talkFlashPage
 		this.flash =
 			app === 'tlt'
 				? new TalkFlash({
@@ -85,6 +88,9 @@ export class ControlAppMode {
 						cooldownS: opts.talkFlashCooldownS,
 						onLit: () => this.host.checkFeedbacks(TALK_FLASH_FEEDBACK),
 						onArmed: (armed) => this.host.setVariableValues({ talk_flash_armed: armed }),
+						onExited: (exited) => this.host.setVariableValues({ talk_flash_exited: exited }),
+						onTookOver: (v) => this.host.setVariableValues({ talk_flash_took_over: v }),
+						canTakeOver: () => this.talkPage > 0,
 					})
 				: null
 		this.client = new ControlClient({ host: address, port: port || CONTROL_APPS[app].port, appName: this.name })
@@ -119,8 +125,10 @@ export class ControlAppMode {
 	}
 
 	/** New blink rate / cooldown from the connection settings, applied without reconnecting. */
-	configureTalkFlash(hz: number, cooldownS: number): void {
+	configureTalkFlash(hz: number, cooldownS: number, page: number): void {
 		this.flash?.configure(hz, cooldownS)
+		this.talkPage = page
+		if (this.flash) this.host.setVariableValues({ talk_page: page })
 	}
 
 	private extraVariables(): Record<string, string> {
@@ -153,7 +161,14 @@ export class ControlAppMode {
 			built.sections.push({ id: 'talk_flash', name: 'Talk flash', definitions: [TALK_FLASH_PRESET] })
 		}
 		this.host.setPresetDefinitions(built.sections, built.presets)
-		if (flash) this.host.setVariableValues({ talk_active: flash.active, talk_flash_armed: flash.armed })
+		if (flash)
+			this.host.setVariableValues({
+				talk_active: flash.active,
+				talk_flash_armed: flash.armed,
+				talk_flash_exited: flash.exited,
+				talk_flash_took_over: flash.tookOver,
+				talk_page: this.talkPage,
+			})
 		this.host.log(
 			'info',
 			`${cat.name}${cat.version ? ` ${cat.version}` : ''}: ${cat.controls.length} controls, ${cat.state.length} state values`,

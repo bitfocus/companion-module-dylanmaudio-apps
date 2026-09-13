@@ -42,7 +42,11 @@ describe('a Talk Light Trigger connection', () => {
 		mock = new CtlMock(load('tlt.json'))
 		await mock.start()
 		host = fakeHost('tlt')
-		mode = new ControlAppMode(host as never, 'tlt', '127.0.0.1', mock.port, { talkFlashHz: 2, talkFlashCooldownS: 10 })
+		mode = new ControlAppMode(host as never, 'tlt', '127.0.0.1', mock.port, {
+			talkFlashHz: 2,
+			talkFlashCooldownS: 10,
+			talkFlashPage: 99,
+		})
 		mode.start()
 		await waitFor(() => 'ctl_tlt__run' in host.actions, 'catalogue defined')
 	})
@@ -55,9 +59,17 @@ describe('a Talk Light Trigger connection', () => {
 		expect(host.actions[TALK_FLASH_EXIT]).toBeDefined()
 		expect(host.feedbacks[TALK_FLASH_FEEDBACK]).toBeDefined()
 		expect(host.feedbacks.st_tlt__talk__is).toBeDefined()
-		expect(Object.keys(host.variableDefs)).toEqual(expect.arrayContaining(['talk_active', 'talk_flash_armed', 'talk']))
+		expect(Object.keys(host.variableDefs)).toEqual(
+			expect.arrayContaining(['talk_active', 'talk_flash_armed', 'talk_flash_exited', 'talk']),
+		)
 		expect(host.presets[TALK_FLASH_PRESET]).toBeDefined()
-		expect(host.vars).toMatchObject({ talk_active: false, talk_flash_armed: true })
+		expect(host.vars).toMatchObject({
+			talk_active: false,
+			talk_flash_armed: true,
+			talk_flash_exited: false,
+			talk_flash_took_over: false,
+			talk_page: 99,
+		})
 	})
 
 	it('flashes while Talk Light reports talk, and stops when it goes quiet', async () => {
@@ -72,9 +84,11 @@ describe('a Talk Light Trigger connection', () => {
 		expect(mode.flash?.lit).toBe(false)
 	})
 
-	it('EXIT disarms the next takeover', async () => {
+	it('EXIT disarms the next takeover and marks the talk as exited', async () => {
+		expect(host.vars.talk_flash_exited).toBe(false)
 		await host.actions[TALK_FLASH_EXIT]?.callback()
 		expect(host.vars.talk_flash_armed).toBe(false)
+		expect(host.vars.talk_flash_exited).toBe(true)
 	})
 
 	it('stops flashing when Talk Light goes away mid-talk', async () => {

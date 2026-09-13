@@ -8,6 +8,7 @@ import {
 	clampTalkFlashHz,
 	TALK_FLASH_DEFAULT_COOLDOWN_S,
 	TALK_FLASH_DEFAULT_HZ,
+	TALK_FLASH_DEFAULT_PAGE,
 	TALK_FLASH_MAX_COOLDOWN_S,
 	TALK_FLASH_MAX_HZ,
 	TALK_FLASH_MIN_HZ,
@@ -29,6 +30,8 @@ export type ModuleConfig = {
 	talkFlashHz: number
 	/** Talk Light only: after EXIT, how long a new talk leaves the decks alone */
 	talkFlashCooldownS: number
+	/** Talk Light only: the page the TALK page was imported to, 0 = off — the triggers read it as $(tlt:talk_page) */
+	talkFlashPage: number
 	/**
 	 * NOT surfaced in the connection UI — this module is bridge-only.
 	 * Direct mode survives solely as the protocol test harness: it is what
@@ -76,6 +79,7 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	ctlPort: 0,
 	talkFlashHz: TALK_FLASH_DEFAULT_HZ,
 	talkFlashCooldownS: TALK_FLASH_DEFAULT_COOLDOWN_S,
+	talkFlashPage: TALK_FLASH_DEFAULT_PAGE,
 	transport: 'bridge',
 	bridgeHost: '127.0.0.1',
 	bridgePort: 8765,
@@ -114,6 +118,7 @@ export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): 
 	c.ctlPort = clampInt(c.ctlPort, 0, 65535, 0)
 	c.talkFlashHz = clampTalkFlashHz(c.talkFlashHz)
 	c.talkFlashCooldownS = clampTalkFlashCooldown(c.talkFlashCooldownS)
+	c.talkFlashPage = clampInt(c.talkFlashPage, 0, 999, TALK_FLASH_DEFAULT_PAGE)
 	if (!c.bridgeHost) c.bridgeHost = '127.0.0.1'
 	c.bridgePort = clampInt(c.bridgePort, 1, 65535, 8765)
 	c.port = clampInt(c.port, 1, 65535, 51325)
@@ -230,6 +235,19 @@ export function GetConfigFields(ctx: ConfigFieldContext = {}): SomeCompanionConf
 			max: TALK_FLASH_MAX_COOLDOWN_S,
 			step: 1,
 			default: TALK_FLASH_DEFAULT_COOLDOWN_S,
+			isVisibleExpression: TLT_ONLY,
+		},
+		{
+			type: 'number',
+			id: 'talkFlashPage',
+			label: 'TALK page number (0 = off)',
+			tooltip:
+				'The page you imported the TALK page to. The two triggers read it as $(tlt:talk_page), so the page can live anywhere. While it is 0, talk still flashes any TALK keys but never switches a deck.',
+			width: 6,
+			min: 0,
+			max: 999,
+			step: 1,
+			default: TALK_FLASH_DEFAULT_PAGE,
 			isVisibleExpression: TLT_ONLY,
 		},
 	]

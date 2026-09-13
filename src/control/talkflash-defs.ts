@@ -28,6 +28,9 @@ export const TALK_FLASH_PRESET = 'p_talk_flash_key'
 export const TALK_FLASH_VARIABLES: Record<string, string> = {
 	talk_active: 'Talk is active (Talk Light Trigger reports talk)',
 	talk_flash_armed: 'A new talk will take the decks over (no EXIT cooldown running)',
+	talk_flash_exited: 'EXIT was pressed during this talk — the deck already went back',
+	talk_flash_took_over: 'The last talk took the decks over (it started while armed)',
+	talk_page: 'The page the TALK page was imported to (connection setting; 0 = not set)',
 }
 
 const RED = combineRgb(255, 40, 40)

@@ -22,6 +22,13 @@ export const TALK_FLASH_MAX_HZ = 3
 export const TALK_FLASH_MIN_HZ = 0.5
 export const TALK_FLASH_DEFAULT_COOLDOWN_S = 10
 export const TALK_FLASH_MAX_COOLDOWN_S = 120
+/**
+ * The TALK page number until the user sets it: 0, off. Companion numbers
+ * pages 1…n as they are added, so no default could be right for everyone —
+ * and with the page unset, a talk takes no deck over, so "Talk end" never
+ * sends a deck "back" from a page it didn't leave.
+ */
+export const TALK_FLASH_DEFAULT_PAGE = 0
 
 export function clampTalkFlashHz(hz: unknown): number {
 	const n = Number(hz)
@@ -49,12 +56,20 @@ export interface TalkFlashOptions {
 	onLit(): void
 	/** `talk_flash_armed` changed. */
 	onArmed(armed: boolean): void
+	/** `talk_flash_exited` changed. */
+	onExited?(exited: boolean): void
+	/** `talk_flash_took_over` changed. */
+	onTookOver?(tookOver: boolean): void
+	/** Whether a talk may take the decks over at all (the TALK page is set). Default yes. */
+	canTakeOver?(): boolean
 	timers?: Timers
 }
 
 export class TalkFlash {
 	private talking = false
 	private phaseOn = false
+	private exitedThisTalk = false
+	private tookOverThisTalk = false
 	private blink: ReturnType<typeof setInterval> | null = null
 	private cooldown: ReturnType<typeof setTimeout> | null = null
 	private hz: number
@@ -77,6 +92,26 @@ export class TalkFlash {
 		return this.cooldown === null
 	}
 
+	/**
+	 * EXIT was pressed during this talk. The "Talk end" trigger reads it so a
+	 * deck that already went back is not sent back a second page. It covers one
+	 * deck exactly; with several, one EXIT stands for all of them — Companion's
+	 * per-deck "on page" condition needs a deck serial, which an importable file
+	 * cannot carry.
+	 */
+	get exited(): boolean {
+		return this.exitedThisTalk
+	}
+
+	/**
+	 * The talk that started most recently found the flash armed, so the "Talk
+	 * start" trigger took the decks over. "Talk end" requires it: without it, a
+	 * deck the cooldown left alone would be sent back a page it never left.
+	 */
+	get tookOver(): boolean {
+		return this.tookOverThisTalk
+	}
+
 	/** The feedback's value: the lit half of each blink, while talk is active. */
 	get lit(): boolean {
 		return this.talking && this.phaseOn
@@ -91,6 +126,8 @@ export class TalkFlash {
 		this.talking = active
 		if (active) {
 			this.phaseOn = true // the first frame of a talk is lit, not dark
+			this.setExited(false) // a new talk takes every deck again
+			this.setTookOver(this.armed && (this.opts.canTakeOver?.() ?? true))
 			this.startBlink()
 		} else {
 			this.stopBlink()
@@ -101,6 +138,7 @@ export class TalkFlash {
 
 	/** EXIT pressed: hold off the next takeover for the cooldown. A second press restarts it. */
 	exit(): void {
+		this.setExited(true)
 		const wasArmed = this.armed
 		if (this.cooldown) this.timers.clearTimeout(this.cooldown)
 		this.cooldown = null
@@ -127,6 +165,18 @@ export class TalkFlash {
 		this.stopBlink()
 		if (this.cooldown) this.timers.clearTimeout(this.cooldown)
 		this.cooldown = null
+	}
+
+	private setTookOver(v: boolean): void {
+		if (v === this.tookOverThisTalk) return
+		this.tookOverThisTalk = v
+		this.opts.onTookOver?.(v)
+	}
+
+	private setExited(exited: boolean): void {
+		if (exited === this.exitedThisTalk) return
+		this.exitedThisTalk = exited
+		this.opts.onExited?.(exited)
 	}
 
 	private startBlink(): void {
