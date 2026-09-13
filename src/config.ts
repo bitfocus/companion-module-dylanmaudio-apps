@@ -3,6 +3,15 @@ import type { PreampGainRange } from './protocol/levels.js'
 import type { SyncScope } from './link.js'
 import { describeImport, readImport } from './showfile/upload.js'
 import { APP_IDS, CONTROL_APPS, isAppId, type AppId } from './control/registry.js'
+import {
+	clampTalkFlashCooldown,
+	clampTalkFlashHz,
+	TALK_FLASH_DEFAULT_COOLDOWN_S,
+	TALK_FLASH_DEFAULT_HZ,
+	TALK_FLASH_MAX_COOLDOWN_S,
+	TALK_FLASH_MAX_HZ,
+	TALK_FLASH_MIN_HZ,
+} from './control/talkflash.js'
 
 export type ModuleConfig = {
 	/**
@@ -16,6 +25,10 @@ export type ModuleConfig = {
 	ctlHost: string
 	/** 0 = the app's registered port (control/registry.ts) */
 	ctlPort: number
+	/** Talk Light only: the TALK page's blink rate, capped at 3 Hz */
+	talkFlashHz: number
+	/** Talk Light only: after EXIT, how long a new talk leaves the decks alone */
+	talkFlashCooldownS: number
 	/**
 	 * NOT surfaced in the connection UI — this module is bridge-only.
 	 * Direct mode survives solely as the protocol test harness: it is what
@@ -61,6 +74,8 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	app: 'bridge',
 	ctlHost: '127.0.0.1',
 	ctlPort: 0,
+	talkFlashHz: TALK_FLASH_DEFAULT_HZ,
+	talkFlashCooldownS: TALK_FLASH_DEFAULT_COOLDOWN_S,
 	transport: 'bridge',
 	bridgeHost: '127.0.0.1',
 	bridgePort: 8765,
@@ -97,6 +112,8 @@ export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): 
 	if (!isAppId(c.app)) c.app = 'bridge'
 	if (!c.ctlHost) c.ctlHost = '127.0.0.1'
 	c.ctlPort = clampInt(c.ctlPort, 0, 65535, 0)
+	c.talkFlashHz = clampTalkFlashHz(c.talkFlashHz)
+	c.talkFlashCooldownS = clampTalkFlashCooldown(c.talkFlashCooldownS)
 	if (!c.bridgeHost) c.bridgeHost = '127.0.0.1'
 	c.bridgePort = clampInt(c.bridgePort, 1, 65535, 8765)
 	c.port = clampInt(c.port, 1, 65535, 51325)
@@ -134,6 +151,8 @@ export interface ConfigFieldContext {
 const BRIDGE_ONLY = "$(options:app) == 'bridge'"
 /** Shown only for the other apps. */
 const CONTROL_ONLY = "$(options:app) != 'bridge'"
+/** Shown only for Talk Light Trigger. */
+const TLT_ONLY = "$(options:app) == 'tlt'"
 
 export function GetConfigFields(ctx: ConfigFieldContext = {}): SomeCompanionConfigField[] {
 	const appField: SomeCompanionConfigField = {
@@ -179,6 +198,39 @@ export function GetConfigFields(ctx: ConfigFieldContext = {}): SomeCompanionConf
 			max: 65535,
 			default: 0,
 			isVisibleExpression: CONTROL_ONLY,
+		},
+		{
+			type: 'static-text',
+			id: 'infoTalkFlash',
+			width: 12,
+			label: 'Talk flash',
+			value:
+				"While Talk Light reports talk, every Stream Deck can jump to a TALK page whose keys blink. EXIT on a deck sends it back, and holds off the next takeover for the cooldown. The page and its two triggers import from the file linked in this module's help.",
+			isVisibleExpression: TLT_ONLY,
+		},
+		{
+			type: 'number',
+			id: 'talkFlashHz',
+			label: `Blink rate (Hz, max ${TALK_FLASH_MAX_HZ})`,
+			tooltip: `Capped at ${TALK_FLASH_MAX_HZ} Hz, the photosensitivity guidance's limit of three flashes a second.`,
+			width: 6,
+			min: TALK_FLASH_MIN_HZ,
+			max: TALK_FLASH_MAX_HZ,
+			step: 0.5,
+			default: TALK_FLASH_DEFAULT_HZ,
+			isVisibleExpression: TLT_ONLY,
+		},
+		{
+			type: 'number',
+			id: 'talkFlashCooldownS',
+			label: 'Cooldown after EXIT (s)',
+			tooltip: 'A new talk within this time does not take the decks over again. 0 = never hold off.',
+			width: 6,
+			min: 0,
+			max: TALK_FLASH_MAX_COOLDOWN_S,
+			step: 1,
+			default: TALK_FLASH_DEFAULT_COOLDOWN_S,
+			isVisibleExpression: TLT_ONLY,
 		},
 	]
 	return [appField, ...controlFields, ...bridgeFields(ctx).map((f) => ({ ...f, isVisibleExpression: BRIDGE_ONLY }))]

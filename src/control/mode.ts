@@ -21,6 +21,15 @@ import {
 	META_VARIABLES,
 } from './definitions.js'
 import { CONTROL_APPS, type AppId } from './registry.js'
+import { TalkFlash } from './talkflash.js'
+import {
+	TALK_FLASH_FEEDBACK,
+	TALK_FLASH_PRESET,
+	TALK_FLASH_VARIABLES,
+	talkFlashActions,
+	talkFlashFeedbacks,
+	talkFlashPresets,
+} from './talkflash-defs.js'
 import type { Catalogue, CmdValue, StateValue } from './types.js'
 
 /** The slice of the instance a control connection drives. */
@@ -45,8 +54,19 @@ const STATUS: Record<ControlStatus, InstanceStatus> = {
 	failure: InstanceStatus.ConnectionFailure,
 }
 
+export interface ControlModeOptions {
+	talkFlashHz: number
+	talkFlashCooldownS: number
+}
+
+/** The Talk Light state key the talk flash follows, and the value that means talking. */
+const TALK_KEY = 'tlt.talk'
+const TALKING = 'active'
+
 export class ControlAppMode {
 	readonly client: ControlClient
+	/** Talk Light connections only (brief §5) */
+	readonly flash: TalkFlash | null
 	private catalogue: Catalogue | null = null
 	private readonly name: string
 
@@ -55,11 +75,23 @@ export class ControlAppMode {
 		readonly app: AppId,
 		address: string,
 		port: number,
+		opts: ControlModeOptions,
 	) {
 		this.name = CONTROL_APPS[app].name
+		this.flash =
+			app === 'tlt'
+				? new TalkFlash({
+						hz: opts.talkFlashHz,
+						cooldownS: opts.talkFlashCooldownS,
+						onLit: () => this.host.checkFeedbacks(TALK_FLASH_FEEDBACK),
+						onArmed: (armed) => this.host.setVariableValues({ talk_flash_armed: armed }),
+					})
+				: null
 		this.client = new ControlClient({ host: address, port: port || CONTROL_APPS[app].port, appName: this.name })
 		this.client.on('status', (s, message) => {
 			this.host.updateStatus(STATUS[s], message || null)
+			// Talk Light gone means no talk to show — never leave the decks blinking.
+			if (s !== 'ok' && s !== 'not_allowed') this.setTalk(false)
 			this.publishMeta()
 		})
 		this.client.on('log', (level, message) => this.host.log(level, message))
@@ -73,7 +105,7 @@ export class ControlAppMode {
 		this.host.setActionDefinitions({})
 		this.host.setFeedbackDefinitions({})
 		this.host.setVariableDefinitions(
-			Object.fromEntries(Object.entries(META_VARIABLES).map(([id, name]) => [id, { name }])),
+			Object.fromEntries(Object.entries(this.extraVariables()).map(([id, name]) => [id, { name }])),
 		)
 		this.host.setPresetDefinitions([], {})
 		this.host.updateStatus(InstanceStatus.Connecting, `Looking for ${this.name}`)
@@ -83,15 +115,45 @@ export class ControlAppMode {
 	stop(): void {
 		this.client.stop()
 		this.client.removeAllListeners()
+		this.flash?.stop()
+	}
+
+	/** New blink rate / cooldown from the connection settings, applied without reconnecting. */
+	configureTalkFlash(hz: number, cooldownS: number): void {
+		this.flash?.configure(hz, cooldownS)
+	}
+
+	private extraVariables(): Record<string, string> {
+		return this.flash ? { ...META_VARIABLES, ...TALK_FLASH_VARIABLES } : META_VARIABLES
+	}
+
+	private setTalk(active: boolean): void {
+		if (!this.flash || this.flash.active === active) return
+		this.flash.setTalk(active)
+		this.host.setVariableValues({ talk_active: active })
 	}
 
 	private define(cat: Catalogue): void {
 		this.catalogue = cat
-		this.host.setActionDefinitions(buildControlActions(cat, async (control, value) => this.press(control, value)))
-		this.host.setFeedbackDefinitions(buildControlFeedbacks(cat, (key) => this.client.get(key)))
-		this.host.setVariableDefinitions(buildControlVariables(cat))
-		const { sections, presets } = buildControlPresets(cat, this.host.label)
-		this.host.setPresetDefinitions(sections, presets)
+		const flash = this.flash
+		this.host.setActionDefinitions({
+			...buildControlActions(cat, async (control, value) => this.press(control, value)),
+			...(flash ? talkFlashActions(flash) : {}),
+		})
+		this.host.setFeedbackDefinitions({
+			...buildControlFeedbacks(cat, (key) => this.client.get(key)),
+			...(flash ? talkFlashFeedbacks(flash) : {}),
+		})
+		const variables = buildControlVariables(cat) as Record<string, { name: string }>
+		for (const [id, name] of Object.entries(this.extraVariables())) variables[id] = { name }
+		this.host.setVariableDefinitions(variables)
+		const built = buildControlPresets(cat, this.host.label)
+		if (flash) {
+			Object.assign(built.presets, talkFlashPresets())
+			built.sections.push({ id: 'talk_flash', name: 'Talk flash', definitions: [TALK_FLASH_PRESET] })
+		}
+		this.host.setPresetDefinitions(built.sections, built.presets)
+		if (flash) this.host.setVariableValues({ talk_active: flash.active, talk_flash_armed: flash.armed })
 		this.host.log(
 			'info',
 			`${cat.name}${cat.version ? ` ${cat.version}` : ''}: ${cat.controls.length} controls, ${cat.state.length} state values`,
@@ -109,6 +171,7 @@ export class ControlAppMode {
 		const cat = this.catalogue
 		if (!cat) return
 		this.host.setVariableValues(controlVariableValues(cat, changed))
+		if (TALK_KEY in changed) this.setTalk(changed[TALK_KEY] === TALKING)
 		const ids = [...new Set(Object.keys(changed).flatMap((k) => feedbackIdsForKey(cat, k)))]
 		if (ids.length) this.host.checkFeedbacks(ids[0], ...ids.slice(1))
 	}

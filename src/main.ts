@@ -118,7 +118,10 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 				prev.app === this.config.app &&
 				prev.ctlHost === this.config.ctlHost &&
 				prev.ctlPort === this.config.ctlPort
-			if (same) return
+			if (same) {
+				this.control?.configureTalkFlash(this.config.talkFlashHz, this.config.talkFlashCooldownS)
+				return
+			}
 			this.control?.stop()
 			this.control = null
 			this.link?.stop()
@@ -243,7 +246,10 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	// ------------------------------------------------------------ wiring
 
 	private startControlMode(): void {
-		this.control = new ControlAppMode(this, this.config.app, this.config.ctlHost, this.config.ctlPort)
+		this.control = new ControlAppMode(this, this.config.app, this.config.ctlHost, this.config.ctlPort, {
+			talkFlashHz: this.config.talkFlashHz,
+			talkFlashCooldownS: this.config.talkFlashCooldownS,
+		})
 		this.control.start()
 	}
 
