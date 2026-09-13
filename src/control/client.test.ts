@@ -1,17 +1,22 @@
 /**
  * The control client against a server built from fixtures/control — the
- * same file the monorepo's real ControlServer is replayed against, so the
- * two sides are held to one contract. Never edit a case to make this green.
+ * same files the monorepo replays its real ControlServer against, so both
+ * sides are held to one contract. Never edit a case to make this green.
+ *
+ * The connection tests run against Pilot Tone Trigger's real catalogue. The
+ * /cmd replay runs over every fixture file: the two shipping apps, and the
+ * demo contract, which still pins wire cases no shipping app exercises yet
+ * (text controls, the browser protections, every error code).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ControlClient, type ControlStatus } from './client.js'
+import { ControlClient } from './client.js'
 import type { CmdValue } from './types.js'
 
-const here = dirname(fileURLToPath(import.meta.url))
+const dir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'fixtures', 'control')
 
 interface FxCase {
 	id: string
@@ -19,19 +24,22 @@ interface FxCase {
 	request: { method: string; path: string; body?: Record<string, unknown>; content_type?: string }
 	response: { status: number; body: Record<string, unknown> }
 }
-const fx = JSON.parse(readFileSync(join(here, '..', '..', 'fixtures', 'control', 'exchanges.json'), 'utf8')) as {
+interface Fixture {
 	app: { id: string; name: string; version: string }
-	catalogue: { controls: unknown[]; state: unknown[] }
+	catalogue: { controls: { id: string }[]; state: { key: string }[] }
 	initial_state: Record<string, unknown>
 	cases: FxCase[]
 }
-function byId(id: string): FxCase {
-	const c = fx.cases.find((x) => x.id === id)
-	if (!c) throw new Error(`no fixture case ${id}`)
-	return c
-}
+const load = (file: string) => JSON.parse(readFileSync(join(dir, file), 'utf8')) as Fixture
+const FILES = readdirSync(dir).filter((f) => f.endsWith('.json'))
+const demo = load('exchanges.json')
+const ptt = load('ptt.json')
 
-/** A /ctl/v1/ server from the fixture's app, catalogue, initial state and cases. */
+/** `<str>` / `<int>` in a fixture mean "any value of that type". */
+const ANY_STR = '<str>'
+const concrete = (v: unknown): unknown => (v === ANY_STR ? 'fixture placeholder' : v)
+
+/** A /ctl/v1/ server from one fixture's app, catalogue, initial state and cases. */
 class CtlMock {
 	private server: Server | null = null
 	port = 0
@@ -39,14 +47,19 @@ class CtlMock {
 	locked = false
 	ctl = 1
 	hash = 'h1'
-	catalogue = fx.catalogue
-	values: Record<string, unknown> = { ...fx.initial_state }
+	catalogue: Fixture['catalogue']
+	values: Record<string, unknown>
 	seq = 0
 	resyncOnce = false
 	resyncs = 0
 	private ring: { seq: number; frame: string }[] = []
 	private streams = new Set<ServerResponse>()
 	requests: { method: string; path: string; headers: IncomingMessage['headers']; body?: Record<string, unknown> }[] = []
+
+	constructor(readonly fx: Fixture) {
+		this.catalogue = fx.catalogue
+		this.values = { ...fx.initial_state }
+	}
 
 	async start(): Promise<void> {
 		this.server = createServer((req, res) => void this.handle(req, res))
@@ -63,7 +76,6 @@ class CtlMock {
 		await new Promise<void>((r) => s.close(() => r()))
 	}
 
-	/** End every open stream, as an app restarting would. */
 	dropStreams(): void {
 		for (const s of this.streams) s.end()
 		this.streams.clear()
@@ -82,6 +94,7 @@ class CtlMock {
 	}
 
 	private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+		const fx = this.fx
 		const [path, query = ''] = (req.url ?? '').split('?')
 		let body: Record<string, unknown> | undefined
 		if (req.method === 'POST') {
@@ -101,7 +114,7 @@ class CtlMock {
 					ctl: this.ctl,
 					app: fx.app.id,
 					name: fx.app.name,
-					version: fx.app.version,
+					version: concrete(fx.app.version),
 					catalogue_hash: this.hash,
 					allowed: this.allowed,
 					locked: this.locked,
@@ -112,7 +125,7 @@ class CtlMock {
 					v: 1,
 					app: fx.app.id,
 					name: fx.app.name,
-					version: fx.app.version,
+					version: concrete(fx.app.version),
 					hash: this.hash,
 					...this.catalogue,
 				})
@@ -122,7 +135,7 @@ class CtlMock {
 				if (this.resyncOnce) {
 					this.resyncOnce = false
 					this.resyncs++
-					return json(409, byId('stream.resync').response.body)
+					return json(409, { ok: false, error: { code: 'resync' } })
 				}
 				const header = req.headers['last-event-id']
 				const q = new URLSearchParams(query).get('cursor')
@@ -144,10 +157,13 @@ class CtlMock {
 						(x.setup?.locked ?? false) === this.locked,
 				)
 				if (!c) return json(500, { ok: false, error: { code: 'no_fixture_case', message: JSON.stringify(body) } })
-				return json(c.response.status, { ...c.response.body, cid: body?.cid })
+				const rb = { ...c.response.body, cid: body?.cid }
+				const err = rb.error as { code: string; message?: unknown } | undefined
+				if (err) rb.error = { ...err, ...(err.message !== undefined ? { message: concrete(err.message) } : {}) }
+				return json(c.response.status, rb)
 			}
 			default:
-				return json(404, byId('not_found').response.body)
+				return json(404, { ok: false, error: { code: 'not_found' } })
 		}
 	}
 }
@@ -160,17 +176,18 @@ async function waitFor(cond: () => boolean, what: string, ms = 3000): Promise<vo
 	}
 }
 
-describe('ControlClient against a server built from fixtures/control', () => {
+describe("ControlClient against Pilot Tone Trigger's real catalogue", () => {
 	let mock: CtlMock
 	let client: ControlClient
+	const streaming = () => client.status === 'ok' && mock.requests.some((r) => r.path === '/ctl/v1/stream')
 
 	beforeEach(async () => {
-		mock = new CtlMock()
+		mock = new CtlMock(ptt)
 		await mock.start()
 		client = new ControlClient({
 			host: '127.0.0.1',
 			port: mock.port,
-			appName: 'Demo App',
+			appName: 'Pilot Tone Trigger',
 			retryMs: 30,
 			mismatchRetryMs: 30,
 		})
@@ -181,10 +198,9 @@ describe('ControlClient against a server built from fixtures/control', () => {
 	})
 
 	it('connects as the brief says: info, catalogue, state, then the stream from that seq', async () => {
-		mock.publish('demo.state', 'ok') // so the snapshot has a seq worth resuming from
+		mock.publish('ptt.state', 'ok') // so the snapshot has a seq worth resuming from
 		client.start()
-		await waitFor(() => client.status === 'ok', 'ok')
-		await waitFor(() => mock.requests.some((r) => r.path === '/ctl/v1/stream'), 'stream opened')
+		await waitFor(streaming, 'stream opened')
 		expect(mock.requests.map((r) => r.path).slice(0, 4)).toEqual([
 			'/ctl/v1/info',
 			'/ctl/v1/catalogue',
@@ -192,16 +208,16 @@ describe('ControlClient against a server built from fixtures/control', () => {
 			'/ctl/v1/stream',
 		])
 		expect(mock.requests[3].headers['last-event-id']).toBe(String(mock.seq))
-		expect(client.catalogue?.controls).toEqual(fx.catalogue.controls)
-		expect(client.catalogue?.state).toEqual(fx.catalogue.state)
-		expect(client.get('demo.state')).toBe('ok')
-		expect(client.get('demo.threshold_db')).toBe(-45)
-		expect(client.info?.version).toBe('1.0.0')
+		expect(client.catalogue?.controls).toEqual(ptt.catalogue.controls)
+		expect(client.catalogue?.state).toEqual(ptt.catalogue.state)
+		expect(client.get('ptt.state')).toBe('ok')
+		expect(client.get('ptt.failback_mode')).toBe('auto')
+		expect(client.get('ptt.level_db')).toBeNull()
 	})
 
-	it('sends no Origin and a loopback Host — the server refuses anything else (security.* cases)', async () => {
+	it('sends no Origin and a loopback Host — the server refuses anything else', async () => {
 		client.start()
-		await waitFor(() => client.status === 'ok', 'ok')
+		await waitFor(streaming, 'stream')
 		for (const r of mock.requests) {
 			expect(r.headers.origin).toBeUndefined()
 			expect(r.headers.host).toBe(`127.0.0.1:${mock.port}`)
@@ -212,27 +228,26 @@ describe('ControlClient against a server built from fixtures/control', () => {
 		const seen: Record<string, unknown>[] = []
 		client.on('values', (v) => seen.push(v))
 		client.start()
-		await waitFor(() => client.status === 'ok' && mock.requests.some((r) => r.path === '/ctl/v1/stream'), 'stream')
-		mock.publish('demo.state', 'lost')
-		mock.publish('demo.level_db', -12.5)
-		await waitFor(() => client.get('demo.level_db') === -12.5, 'level delta')
-		expect(client.get('demo.state')).toBe('lost')
-		expect(seen).toContainEqual({ 'demo.state': 'lost' })
+		await waitFor(streaming, 'stream')
+		mock.publish('ptt.state', 'lost')
+		mock.publish('ptt.reset_available', true)
+		mock.publish('ptt.level_db', -12.5)
+		await waitFor(() => client.get('ptt.level_db') === -12.5, 'level delta')
+		expect(client.get('ptt.state')).toBe('lost')
+		expect(client.get('ptt.reset_available')).toBe(true)
+		expect(seen).toContainEqual({ 'ptt.state': 'lost' })
 	})
 
 	it('rebuilds when the app changes its catalogue', async () => {
-		const catalogues: number[] = []
-		client.on('catalogue', (c) => catalogues.push(c.controls.length))
+		const lengths: number[] = []
+		client.on('catalogue', (c) => lengths.push(c.controls.length))
 		client.start()
-		await waitFor(() => client.status === 'ok' && mock.requests.some((r) => r.path === '/ctl/v1/stream'), 'stream')
-		mock.catalogue = {
-			...fx.catalogue,
-			controls: [...fx.catalogue.controls, { id: 'demo.extra', label: 'Extra', kind: 'action' }],
-		}
+		await waitFor(streaming, 'stream')
+		mock.catalogue = { ...ptt.catalogue, controls: [...ptt.catalogue.controls, { id: 'ptt.extra' }] }
 		mock.hash = 'h2'
 		mock.emit('catalogue', { hash: 'h2' })
 		await waitFor(() => client.catalogue?.hash === 'h2', 'refetched catalogue')
-		expect(catalogues).toEqual([fx.catalogue.controls.length, fx.catalogue.controls.length + 1])
+		expect(lengths).toEqual([ptt.catalogue.controls.length, ptt.catalogue.controls.length + 1])
 	})
 
 	it('says when Companion control is switched off in the app, and when it is back', async () => {
@@ -249,12 +264,12 @@ describe('ControlClient against a server built from fixtures/control', () => {
 
 	it('starts again from /state when its cursor has fallen off the ring (409 resync)', async () => {
 		client.start()
-		await waitFor(() => client.status === 'ok' && mock.requests.some((r) => r.path === '/ctl/v1/stream'), 'stream')
-		mock.values['demo.state'] = 'latched' // changed while the client was away, with no event it will see
+		await waitFor(streaming, 'stream')
+		mock.values['ptt.state'] = 'latched' // changed while the client was away, with no event it will see
 		mock.resyncOnce = true
 		mock.dropStreams()
 		await waitFor(() => mock.resyncs === 1, '409 served')
-		await waitFor(() => client.get('demo.state') === 'latched', 'refetched state')
+		await waitFor(() => client.get('ptt.state') === 'latched', 'refetched state')
 		expect(client.status).toBe('ok')
 	})
 
@@ -270,69 +285,74 @@ describe('ControlClient against a server built from fixtures/control', () => {
 		await mock.stop()
 		client.start()
 		await waitFor(() => client.status === 'not_running', 'not_running')
-		expect(client.statusMessage).toMatch(/isn't running/)
-		const r = await client.cmd('demo.run', 'on')
+		expect(client.statusMessage).toMatch(/Pilot Tone Trigger isn't running/)
+		const r = await client.cmd('ptt.run', 'on')
 		expect(r).toMatchObject({ ok: false, status: 0, code: 'not_running' })
 	})
 })
 
-describe('/cmd: every case in fixtures/control that a client can send', () => {
-	// cmd.bad_request (no "control") and cmd.bad_content_type (text/plain) are
-	// server-side protections this client can't trigger: it always names a
-	// control and always sends JSON. The last test makes sure those are the only
-	// two left out, so a new /cmd case can't be skipped by accident.
+// cmd.bad_request (no "control") and cmd.bad_content_type (text/plain) are
+// server-side protections this client can't trigger: it always names a
+// control and always sends JSON. Each file's guard test makes sure those are
+// the only cases left out, so a new /cmd case can't be skipped by accident.
+const UNSENDABLE = ['cmd.bad_content_type', 'cmd.bad_request']
+
+for (const file of FILES) {
+	const fx = load(file)
 	const cases = fx.cases.filter(
 		(c) => c.request.path === '/ctl/v1/cmd' && typeof c.request.body?.control === 'string' && !c.request.content_type,
 	)
-	let mock: CtlMock
-	let client: ControlClient
-	beforeEach(async () => {
-		mock = new CtlMock()
-		await mock.start()
-		client = new ControlClient({ host: '127.0.0.1', port: mock.port, appName: 'Demo App' })
-	})
-	afterEach(async () => {
-		await mock.stop()
-	})
 
-	for (const c of cases) {
-		it(c.id, async () => {
-			mock.allowed = c.setup?.allowed ?? true
-			mock.locked = c.setup?.locked ?? false
-			const { control, value } = c.request.body as { control: string; value?: CmdValue }
-			const r = await client.cmd(control, value)
-
-			const sent = mock.requests[mock.requests.length - 1]
-			const { cid, ...rest } = sent.body ?? {}
-			const { cid: _fixtureCid, ...want } = c.request.body ?? {}
-			expect(rest).toEqual(want)
-			expect(typeof cid).toBe('string')
-			expect(sent.headers['content-type']).toBe('application/json')
-
-			const rb = c.response.body as { ok: boolean; value?: unknown; error?: { code: string; message?: string } }
-			expect(r.ok).toBe(rb.ok)
-			expect(r.status).toBe(c.response.status)
-			if (rb.ok) {
-				if ('value' in rb) expect(r.value).toEqual(rb.value)
-			} else {
-				expect(r.code).toBe(rb.error?.code)
-				if (rb.error?.message) expect(r.message).toBe(rb.error.message)
-			}
+	describe(`/cmd: every case in fixtures/control/${file} that a client can send`, () => {
+		let mock: CtlMock
+		let client: ControlClient
+		beforeEach(async () => {
+			mock = new CtlMock(fx)
+			await mock.start()
+			client = new ControlClient({ host: '127.0.0.1', port: mock.port, appName: fx.app.name })
 		})
-	}
+		afterEach(async () => {
+			await mock.stop()
+		})
 
-	it('leaves out only the two cases a client cannot produce', () => {
-		const skipped = fx.cases
-			.filter((c) => c.request.path === '/ctl/v1/cmd' && !cases.includes(c))
-			.map((c) => c.id)
-			.sort()
-		expect(skipped).toEqual(['cmd.bad_content_type', 'cmd.bad_request'])
+		for (const c of cases) {
+			it(c.id, async () => {
+				mock.allowed = c.setup?.allowed ?? true
+				mock.locked = c.setup?.locked ?? false
+				const { control, value } = c.request.body as { control: string; value?: CmdValue }
+				const r = await client.cmd(control, value)
+
+				const sent = mock.requests[mock.requests.length - 1]
+				const { cid, ...rest } = sent.body ?? {}
+				const { cid: _fixtureCid, ...want } = c.request.body ?? {}
+				expect(rest).toEqual(want)
+				expect(typeof cid).toBe('string')
+				expect(sent.headers['content-type']).toBe('application/json')
+
+				const rb = c.response.body as { ok: boolean; value?: unknown; error?: { code: string; message?: string } }
+				expect(r.ok).toBe(rb.ok)
+				expect(r.status).toBe(c.response.status)
+				if (rb.ok) {
+					if ('value' in rb) expect(r.value).toEqual(rb.value)
+				} else {
+					expect(r.code).toBe(rb.error?.code)
+					const m = rb.error?.message
+					if (m === ANY_STR) expect(typeof r.message).toBe('string')
+					else if (m !== undefined) expect(r.message).toBe(m)
+				}
+			})
+		}
+
+		it('leaves out only the cases a client cannot produce', () => {
+			const skipped = fx.cases.filter((c) => c.request.path === '/ctl/v1/cmd' && !cases.includes(c)).map((c) => c.id)
+			for (const id of skipped) expect(UNSENDABLE).toContain(id)
+		})
 	})
+}
 
-	it("a press is matched to its case by the wire body alone — the statuses it reads are the fixture's", () => {
-		const statuses = new Set(cases.map((c) => c.response.status))
-		expect([...statuses].sort()).toEqual([200, 400, 403, 404, 409, 423])
-		const _unused: ControlStatus = 'ok'
-		expect(_unused).toBe('ok')
+describe('fixtures/control', () => {
+	it('has the demo contract and both shipping apps', () => {
+		expect(FILES.sort()).toEqual(['exchanges.json', 'ptt.json', 'tlt.json'])
+		expect(demo.cases.length).toBeGreaterThan(20)
 	})
 })

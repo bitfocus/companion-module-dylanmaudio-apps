@@ -1,7 +1,8 @@
 /**
- * Catalogue → Companion definitions, from the fixture catalogue. The
- * important test is the first: each kind of action must put exactly the
- * value on the wire that fixtures/control pins for it.
+ * Catalogue → Companion definitions. The shipping apps' real catalogues come
+ * first; the demo contract below them covers the kinds no shipping app uses
+ * yet (a text control). The important tests are the wire ones: each kind of
+ * action must put exactly the value on the wire that fixtures/control pins.
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -217,5 +218,101 @@ describe('presets', () => {
 	it('no preset for free text, and one section holding the rest', () => {
 		expect(Object.keys(presets).some((k) => k.startsWith('p_demo__start_tc'))).toBe(false)
 		expect(sections).toEqual([{ id: 'ctl_demo', name: 'Demo App', definitions: Object.keys(presets) }])
+	})
+})
+
+// ------------------------------------------------------- the shipping apps
+
+type Fx = typeof fx
+function loadFx(file: string): { fx: Fx; cat: Catalogue } {
+	const f = JSON.parse(readFileSync(join(here, '..', '..', 'fixtures', 'control', file), 'utf8')) as Fx
+	return { fx: f, cat: { app: f.app.id, name: f.app.name, version: f.app.version, hash: 'h', ...f.catalogue } }
+}
+function wireIn(f: Fx, caseId: string): { control?: string; value?: CmdValue } {
+	const c = f.cases.find((x) => x.id === caseId)
+	if (!c?.request.body) throw new Error(`no body for ${caseId}`)
+	return { control: c.request.body.control, value: c.request.body.value }
+}
+async function pressIn(
+	c: Catalogue,
+	id: string,
+	opts: Record<string, unknown>,
+): Promise<{ control: string; value?: CmdValue }> {
+	const sent: { control: string; value?: CmdValue }[] = []
+	const def = buildControlActions(c, async (control, value) => {
+		sent.push({ control, value })
+	})[id]
+	if (!def) throw new Error(`no action ${id}`)
+	await def.callback({ options: opts } as never, {} as never)
+	return sent[0]
+}
+
+describe('Pilot Tone Trigger (fixtures/control/ptt.json)', () => {
+	const { fx: pf, cat: pc } = loadFx('ptt.json')
+
+	it('each control puts on the wire exactly what the fixture pins', async () => {
+		expect(await pressIn(pc, 'ctl_ptt__run', { mode: 'on' })).toEqual(wireIn(pf, 'cmd.run.on'))
+		expect(await pressIn(pc, 'ctl_ptt__failback_mode', { value: 'next' })).toEqual(wireIn(pf, 'cmd.failback_mode.next'))
+		expect(await pressIn(pc, 'ctl_ptt__failback_mode', { value: 'auto' })).toEqual(
+			wireIn(pf, 'cmd.failback_mode.locked'),
+		)
+		expect(await pressIn(pc, 'ctl_ptt__reset', {})).toEqual(wireIn(pf, 'cmd.reset.noop_when_stopped'))
+		expect(await pressIn(pc, 'ctl_ptt__tone', { mode: 'toggle' })).toEqual(wireIn(pf, 'cmd.tone.toggle'))
+	})
+
+	it('Automatic and Latch are named as the app names them, and the mode is marked show-critical', () => {
+		const a = buildControlActions(pc, async () => undefined)
+		const opts = a.ctl_ptt__failback_mode?.options as unknown as { choices: unknown }[]
+		expect(opts[0].choices).toEqual([
+			{ id: 'auto', label: 'Automatic' },
+			{ id: 'latch', label: 'Latch until Reset' },
+			{ id: 'next', label: 'Next (cycles through them)' },
+		])
+		expect(a.ctl_ptt__failback_mode?.description).toMatch(/^Show-critical:/)
+		expect(a.ctl_ptt__run?.description).toMatch(/Show-critical when set to Off/)
+		expect(a.ctl_ptt__reset?.description).toMatch(/"Reset available"/)
+	})
+
+	it('feedbacks, variables and presets for the state it reports', () => {
+		expect(Object.keys(buildControlFeedbacks(pc, () => null)).sort()).toEqual(
+			[
+				'st_ptt__failback_mode__is',
+				'st_ptt__reset_available',
+				'st_ptt__running',
+				'st_ptt__state__is',
+				'st_ptt__tone_running',
+			].sort(),
+		)
+		const vars = Object.keys(buildControlVariables(pc)).filter((k) => !k.startsWith('ctl_'))
+		expect(vars.sort()).toEqual(
+			['failback_mode', 'level_db', 'reset_available', 'running', 'state', 'tone_running'].sort(),
+		)
+		const { presets } = buildControlPresets(pc, 'ptt')
+		expect(Object.keys(presets).sort()).toEqual(
+			['p_ptt__failback_mode__auto', 'p_ptt__failback_mode__latch', 'p_ptt__reset', 'p_ptt__run', 'p_ptt__tone'].sort(),
+		)
+	})
+})
+
+describe('Talk Light Trigger (fixtures/control/tlt.json)', () => {
+	const { fx: tf, cat: tc } = loadFx('tlt.json')
+
+	it('each control puts on the wire exactly what the fixture pins', async () => {
+		expect(await pressIn(tc, 'ctl_tlt__run', { mode: 'on' })).toEqual(wireIn(tf, 'cmd.toggle.on'))
+		expect(await pressIn(tc, 'ctl_tlt__run', { mode: 'toggle' })).toEqual(wireIn(tf, 'cmd.toggle.flip'))
+		expect(await pressIn(tc, 'ctl_tlt__run', { mode: 'off' })).toEqual(wireIn(tf, 'cmd.locked.toggle_off_refused'))
+		expect(await pressIn(tc, 'ctl_tlt__threshold', { mode: 'nudge', steps: 1 })).toEqual(wireIn(tf, 'cmd.number.nudge'))
+		expect(await pressIn(tc, 'ctl_tlt__threshold', { mode: 'set', value: 10 })).toEqual(
+			wireIn(tf, 'cmd.number.out_of_range'),
+		)
+	})
+
+	it('talk state is a feedback, and the threshold a readout with ±1 dB nudges', () => {
+		expect(Object.keys(buildControlFeedbacks(tc, () => null)).sort()).toEqual(['st_tlt__running', 'st_tlt__talk__is'])
+		const { presets } = buildControlPresets(tc, 'tlt')
+		expect(JSON.stringify(presets.p_tlt__threshold__show)).toContain('$(tlt:threshold_db)')
+		expect(Object.keys(presets)).toEqual(
+			expect.arrayContaining(['p_tlt__run', 'p_tlt__threshold__up', 'p_tlt__threshold__down']),
+		)
 	})
 })
