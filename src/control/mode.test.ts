@@ -4,7 +4,9 @@
  * for the instance. This is where the talk flash meets the app's talk state.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { createServer } from 'node:net'
 import { CtlMock, load, waitFor } from '../../test/ctlmock.js'
+import type { Catalogue } from './types.js'
 import { ControlAppMode } from './mode.js'
 import { TALK_FLASH_EXIT, TALK_FLASH_FEEDBACK, TALK_FLASH_PRESET } from './talkflash-defs.js'
 
@@ -154,6 +156,87 @@ describe('a Console Control connection', () => {
 		const reason = 'Show Mode: Go to Marker is not available with no markers.'
 		await waitFor(() => host.logs.some((m) => m.includes(reason)), 'refusal logged')
 		mode.stop()
+		await mock.stop()
+	})
+})
+
+async function closedPort(): Promise<number> {
+	const s = createServer()
+	await new Promise<void>((r) => s.listen(0, '127.0.0.1', r))
+	const port = (s.address() as { port: number }).port
+	await new Promise<void>((r) => s.close(() => r()))
+	return port
+}
+
+const catalogueOf = (file: string, hash = 'kept'): Catalogue => {
+	const fx = load(file)
+	return { app: fx.app.id, name: fx.app.name, version: 'x', hash, ...fx.catalogue } as Catalogue
+}
+
+describe('while the app is not running', () => {
+	it('a Talk Light connection still has EXIT, the flash feedback and the TALK key', async () => {
+		const host = fakeHost('tlt')
+		const mode = new ControlAppMode(host as never, 'tlt', '127.0.0.1', await closedPort(), OPTS)
+		mode.start()
+		expect(host.actions[TALK_FLASH_EXIT]).toBeDefined()
+		expect(host.feedbacks[TALK_FLASH_FEEDBACK]).toBeDefined()
+		expect(host.presets[TALK_FLASH_PRESET]).toBeDefined()
+		expect(host.vars).toMatchObject({ talk_active: false, talk_flash_armed: true })
+		await host.actions[TALK_FLASH_EXIT]?.callback()
+		expect(host.vars.talk_flash_exited).toBe(true)
+		mode.stop()
+	})
+
+	it("keeps the app's buttons from last time, and a press says the app isn't answering", async () => {
+		const host = fakeHost('ptt')
+		const mode = new ControlAppMode(host as never, 'ptt', '127.0.0.1', await closedPort(), {
+			...OPTS,
+			cachedCatalogue: catalogueOf('ptt.json'),
+		})
+		mode.start()
+		expect(host.actions.ctl_ptt__failback_mode).toBeDefined()
+		expect(host.feedbacks.st_ptt__state__is).toBeDefined()
+		expect(host.logs.some((m) => m.includes('from last time'))).toBe(true)
+		await host.actions.ctl_ptt__failback_mode?.callback({ options: { value: 'latch' } } as never)
+		expect(host.logs.at(-1)).toMatch(/^Pilot Tone Trigger isn't answering/)
+		mode.stop()
+	})
+
+	it("ignores another app's catalogue, as after changing the connection's App", async () => {
+		const host = fakeHost('ptt')
+		const mode = new ControlAppMode(host as never, 'ptt', '127.0.0.1', await closedPort(), {
+			...OPTS,
+			cachedCatalogue: catalogueOf('tlt.json'),
+		})
+		mode.start()
+		expect(Object.keys(host.actions)).toEqual([])
+		mode.stop()
+	})
+})
+
+describe("keeping an app's catalogue for next time", () => {
+	it('keeps a new catalogue once, and not the same one again', async () => {
+		const mock = new CtlMock(load('ptt.json'))
+		await mock.start()
+		const kept: Catalogue[] = []
+		const first = fakeHost('ptt')
+		const a = new ControlAppMode(first as never, 'ptt', '127.0.0.1', mock.port, {
+			...OPTS,
+			onCatalogue: (c) => kept.push(c),
+		})
+		a.start()
+		await waitFor(() => kept.length === 1, 'catalogue kept')
+		a.stop()
+		const again = fakeHost('ptt')
+		const b = new ControlAppMode(again as never, 'ptt', '127.0.0.1', mock.port, {
+			...OPTS,
+			cachedCatalogue: kept[0],
+			onCatalogue: (c) => kept.push(c),
+		})
+		b.start()
+		await waitFor(() => again.logs.some((m) => m.includes('controls,')), 'live catalogue defined')
+		expect(kept).toHaveLength(1)
+		b.stop()
 		await mock.stop()
 	})
 })

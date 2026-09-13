@@ -66,6 +66,9 @@ here without a new version of this module.
   controls* switch is on. The action says so in its description.
 - **When an app says no**, its own reason goes to the Companion log word
   for word — "Signal is still below threshold — stay on backup".
+- **When an app isn't running**, its buttons stay put: the connection
+  remembers the app's controls from last time. A press then says in the
+  log that the app isn't answering.
 - **Time Code Tool** also has a four-key **timecode readout** preset
   (hours, minutes, seconds, frames). The digits are zero-padded, green
   while locked or generating, amber in freewheel, and `--` without a

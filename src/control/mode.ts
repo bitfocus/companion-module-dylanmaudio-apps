@@ -59,9 +59,15 @@ export interface ControlModeOptions {
 	talkFlashHz: number
 	talkFlashCooldownS: number
 	talkFlashPage: number
+	/** The app's catalogue from last time, so its buttons stay defined while it isn't running */
+	cachedCatalogue?: Catalogue | null
+	/** A catalogue arrived that differs from the one kept: keep this one for next time */
+	onCatalogue?: (cat: Catalogue) => void
 }
 
 /** The Talk Light state key the talk flash follows, and the value that means talking. */
+const TALK_FLASH_SECTION = { id: 'talk_flash', name: 'Talk flash', definitions: [TALK_FLASH_PRESET] }
+
 const TALK_KEY = 'tlt.talk'
 const TALKING = 'active'
 
@@ -72,6 +78,9 @@ export class ControlAppMode {
 	private catalogue: Catalogue | null = null
 	private readonly name: string
 	private talkPage: number
+	private readonly cached: Catalogue | null
+	private readonly keepCatalogue?: (cat: Catalogue) => void
+	private keptHash: string | undefined
 
 	constructor(
 		private readonly host: ControlHost,
@@ -82,6 +91,9 @@ export class ControlAppMode {
 	) {
 		this.name = CONTROL_APPS[app].name
 		this.talkPage = opts.talkFlashPage
+		this.cached = opts.cachedCatalogue?.app === app ? opts.cachedCatalogue : null
+		this.keepCatalogue = opts.onCatalogue
+		this.keptHash = this.cached?.hash
 		this.flash =
 			app === 'tlt'
 				? new TalkFlash({
@@ -102,19 +114,24 @@ export class ControlAppMode {
 			this.publishMeta()
 		})
 		this.client.on('log', (level, message) => this.host.log(level, message))
-		this.client.on('catalogue', (cat) => this.define(cat))
+		this.client.on('catalogue', (cat) => {
+			this.define(cat)
+			if (cat.hash !== this.keptHash) {
+				this.keptHash = cat.hash
+				this.keepCatalogue?.(cat)
+			}
+		})
 		this.client.on('info', () => this.publishMeta())
 		this.client.on('values', (changed) => this.onValues(changed))
 	}
 
 	start(): void {
-		// Clear whatever the previous app type defined; the catalogue refills it.
-		this.host.setActionDefinitions({})
-		this.host.setFeedbackDefinitions({})
-		this.host.setVariableDefinitions(
-			Object.fromEntries(Object.entries(this.extraVariables()).map(([id, name]) => [id, { name }])),
-		)
-		this.host.setPresetDefinitions([], {})
+		// Replace whatever the previous app type defined. Last time's catalogue
+		// keeps the app's buttons defined until it answers; without one, only
+		// what this module owns (the talk flash). Either way a press while the
+		// app is down says so, instead of failing inside Companion.
+		if (this.cached) this.define(this.cached, true)
+		else this.defineOwnOnly()
 		this.host.updateStatus(InstanceStatus.Connecting, `Looking for ${this.name}`)
 		this.client.start()
 	}
@@ -142,7 +159,32 @@ export class ControlAppMode {
 		this.host.setVariableValues({ talk_active: active })
 	}
 
-	private define(cat: Catalogue): void {
+	/** No catalogue yet: the talk flash, which this module owns, and the meta variables. */
+	private defineOwnOnly(): void {
+		const flash = this.flash
+		this.host.setActionDefinitions(flash ? talkFlashActions(flash) : {})
+		this.host.setFeedbackDefinitions(flash ? talkFlashFeedbacks(flash) : {})
+		this.host.setVariableDefinitions(
+			Object.fromEntries(Object.entries(this.extraVariables()).map(([id, name]) => [id, { name }])),
+		)
+		if (flash) this.host.setPresetDefinitions([TALK_FLASH_SECTION], talkFlashPresets())
+		else this.host.setPresetDefinitions([], {})
+		this.publishFlash()
+	}
+
+	private publishFlash(): void {
+		const flash = this.flash
+		if (!flash) return
+		this.host.setVariableValues({
+			talk_active: flash.active,
+			talk_flash_armed: flash.armed,
+			talk_flash_exited: flash.exited,
+			talk_flash_took_over: flash.tookOver,
+			talk_page: this.talkPage,
+		})
+	}
+
+	private define(cat: Catalogue, fromLastTime = false): void {
 		this.catalogue = cat
 		const flash = this.flash
 		this.host.setActionDefinitions({
@@ -159,7 +201,7 @@ export class ControlAppMode {
 		const built = buildControlPresets(cat, this.host.label)
 		if (flash) {
 			Object.assign(built.presets, talkFlashPresets())
-			built.sections.push({ id: 'talk_flash', name: 'Talk flash', definitions: [TALK_FLASH_PRESET] })
+			built.sections.push(TALK_FLASH_SECTION)
 		}
 		const readout = this.app === 'tct' ? timecodeReadoutPresets(cat, this.host.label) : null
 		if (readout) {
@@ -167,17 +209,12 @@ export class ControlAppMode {
 			built.sections.push(readout.section)
 		}
 		this.host.setPresetDefinitions(built.sections, built.presets)
-		if (flash)
-			this.host.setVariableValues({
-				talk_active: flash.active,
-				talk_flash_armed: flash.armed,
-				talk_flash_exited: flash.exited,
-				talk_flash_took_over: flash.tookOver,
-				talk_page: this.talkPage,
-			})
+		this.publishFlash()
 		this.host.log(
 			'info',
-			`${cat.name}${cat.version ? ` ${cat.version}` : ''}: ${cat.controls.length} controls, ${cat.state.length} state values`,
+			fromLastTime
+				? `${cat.name}: using its controls from last time until it answers`
+				: `${cat.name}${cat.version ? ` ${cat.version}` : ''}: ${cat.controls.length} controls, ${cat.state.length} state values`,
 		)
 		this.publishMeta()
 	}
@@ -185,7 +222,11 @@ export class ControlAppMode {
 	/** A refusal is the app's own sentence (brief §2.3 rule 4) — pass it on, don't paraphrase it. */
 	private async press(control: string, value?: CmdValue): Promise<void> {
 		const r = await this.client.cmd(control, value)
-		if (!r.ok) this.host.log('warn', `${this.name}: ${r.message ?? r.code ?? 'refused'}`)
+		if (!r.ok)
+			this.host.log(
+				'warn',
+				r.code === 'not_running' && r.message ? r.message : `${this.name}: ${r.message ?? r.code ?? 'refused'}`,
+			)
 	}
 
 	private onValues(changed: Record<string, StateValue>): void {

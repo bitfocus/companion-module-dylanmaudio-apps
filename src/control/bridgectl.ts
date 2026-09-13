@@ -60,16 +60,29 @@ export class BridgeAppControl extends EventEmitter<BridgeAppEvents> {
 		private readonly host: BridgeAppHost,
 		address: string,
 		port: number,
-		opts: { retryMs?: number } = {},
+		opts: {
+			retryMs?: number
+			/** The bridge's catalogue from last time: Run and Restart stay defined while the app is down */
+			cached?: Catalogue | null
+			/** A catalogue arrived that differs from the one kept: keep this one for next time */
+			onCatalogue?: (cat: Catalogue) => void
+		} = {},
 	) {
 		super()
+		const { cached, onCatalogue, ...clientOpts } = opts
 		const p = port || CONTROL_APPS.bridge.port
 		this.where = `${address}:${p}`
-		this.client = new ControlClient({ host: address, port: p, appName: CONTROL_APPS.bridge.name, ...opts })
+		this.catalogue = cached?.app === 'bridge' ? cached : null
+		let keptHash = this.catalogue?.hash
+		this.client = new ControlClient({ host: address, port: p, appName: CONTROL_APPS.bridge.name, ...clientOpts })
 		this.client.on('status', (s, message) => this.onStatus(s, message))
 		this.client.on('log', (level, message) => this.host.log(level, message))
 		this.client.on('catalogue', (cat) => {
 			this.catalogue = cat
+			if (cat.hash !== keptHash) {
+				keptHash = cat.hash
+				onCatalogue?.(cat)
+			}
 			this.host.log(
 				'info',
 				`MIDI Bridge app control: ${cat.controls.length} controls, ${cat.state.length} state values`,
@@ -159,7 +172,11 @@ export class BridgeAppControl extends EventEmitter<BridgeAppEvents> {
 	/** A refusal is the app's own sentence (brief §2.3 rule 4) — pass it on, don't paraphrase it. */
 	private async press(control: string, value?: CmdValue): Promise<void> {
 		const r = await this.client.cmd(control, value)
-		if (!r.ok) this.host.log('warn', `MIDI Bridge: ${r.message ?? r.code ?? 'refused'}`)
+		if (!r.ok)
+			this.host.log(
+				'warn',
+				r.code === 'not_running' && r.message ? r.message : `MIDI Bridge: ${r.message ?? r.code ?? 'refused'}`,
+			)
 	}
 
 	private publishMeta(): void {

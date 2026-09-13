@@ -50,6 +50,7 @@ import type { ConsoleEvent } from './protocol/intents.js'
 import { describeAppCc } from './protocol/appcc.js'
 import { ControlAppMode } from './control/mode.js'
 import { BridgeAppControl } from './control/bridgectl.js'
+import type { Catalogue } from './control/types.js'
 
 export type ModuleSchema = {
 	config: ModuleConfig
@@ -265,6 +266,8 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 			talkFlashHz: this.config.talkFlashHz,
 			talkFlashCooldownS: this.config.talkFlashCooldownS,
 			talkFlashPage: this.config.talkFlashPage,
+			cachedCatalogue: parseCatalogue(this.config.ctlCatalogue),
+			onCatalogue: (cat) => this.keepCatalogue('ctlCatalogue', cat),
 		})
 		this.control.start()
 	}
@@ -273,7 +276,10 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 	private startBridgeApp(): void {
 		this.stopBridgeApp()
 		if (this.config.transport !== 'bridge') return
-		const app = new BridgeAppControl(this, this.config.bridgeHost, this.config.bridgeCtlPort)
+		const app = new BridgeAppControl(this, this.config.bridgeHost, this.config.bridgeCtlPort, {
+			cached: parseCatalogue(this.config.bridgeCtlCatalogue),
+			onCatalogue: (cat) => this.keepCatalogue('bridgeCtlCatalogue', cat),
+		})
 		app.on('definitions', () => {
 			this.defineActions()
 			this.defineFeedbacks()
@@ -282,6 +288,12 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		app.on('bridgeState', () => this.applyStatus())
 		this.bridgeApp = app
 		app.start()
+	}
+
+	/** Keep an app's catalogue in the connection config for the next start (not a form field). */
+	private keepCatalogue(key: 'ctlCatalogue' | 'bridgeCtlCatalogue', cat: Catalogue): void {
+		this.config = { ...this.config, [key]: JSON.stringify(cat) }
+		this.saveConfig(this.config)
 	}
 
 	private stopBridgeApp(): void {
@@ -558,6 +570,17 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		this.actionsMap = merged
 		if (changed) this.defineActions()
 		this.queueVariables({ scene_current_name: this.link.state.sceneName(this.link.state.currentScene) })
+	}
+}
+
+/** An app's catalogue kept in the connection config, if it is still one. */
+function parseCatalogue(s: string): Catalogue | null {
+	if (!s) return null
+	try {
+		const c = JSON.parse(s) as Catalogue
+		return typeof c.app === 'string' && Array.isArray(c.controls) && Array.isArray(c.state) ? c : null
+	} catch {
+		return null
 	}
 }
 

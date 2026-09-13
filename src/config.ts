@@ -43,6 +43,9 @@ export type ModuleConfig = {
 	bridgePort: number
 	/** The bridge app's own /ctl/v1 endpoint, on bridgeHost. 0 = its standard 8770 */
 	bridgeCtlPort: number
+	/** Not a form field: each app's last catalogue, so its buttons stay defined while it is down (JSON) */
+	ctlCatalogue: string
+	bridgeCtlCatalogue: string
 	bridgeToken: string
 	host: string
 	port: number
@@ -86,6 +89,8 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	bridgeHost: '127.0.0.1',
 	bridgePort: 8765,
 	bridgeCtlPort: 0,
+	ctlCatalogue: '',
+	bridgeCtlCatalogue: '',
 	bridgeToken: '',
 	host: '',
 	port: 51325,
@@ -125,6 +130,8 @@ export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): 
 	if (!c.bridgeHost) c.bridgeHost = '127.0.0.1'
 	c.bridgePort = clampInt(c.bridgePort, 1, 65535, 8765)
 	c.bridgeCtlPort = clampInt(c.bridgeCtlPort, 0, 65535, 0)
+	if (typeof c.ctlCatalogue !== 'string') c.ctlCatalogue = ''
+	if (typeof c.bridgeCtlCatalogue !== 'string') c.bridgeCtlCatalogue = ''
 	c.port = clampInt(c.port, 1, 65535, 51325)
 	c.surfacePort = clampInt(c.surfacePort, 1, 65535, 51328)
 	c.baseChannel = clampInt(c.baseChannel, 1, 12, 12)

@@ -84,6 +84,17 @@ describe('MIDI Bridge app control inside the MIDI Bridge connection', () => {
 		expect(host.logs.some((m) => m.startsWith('MIDI Bridge:'))).toBe(false)
 	})
 
+	it("with last time's catalogue, Run and Restart stay defined while the bridge app is down", async () => {
+		const host = fakeHost()
+		const fx = load('bridge.json')
+		const cached = { app: 'bridge', name: 'MIDI Bridge', version: 'x', hash: 'kept', ...fx.catalogue }
+		app = new BridgeAppControl(host, '127.0.0.1', await closedPort(), { retryMs: 20, cached: cached as never })
+		expect(Object.keys(app.actions())).toEqual(expect.arrayContaining(['ctl_bridge__run', 'ctl_bridge__restart']))
+		app.start()
+		await app.actions().ctl_bridge__run?.callback({ options: { mode: 'on' } }, {})
+		expect(host.logs.at(-1)).toMatch(/^MIDI Bridge isn't answering/)
+	})
+
 	it('says once, and only once, when the bridge is too old to have app control', async () => {
 		const host = fakeHost()
 		app = new BridgeAppControl(host, '127.0.0.1', await closedPort(), { retryMs: 20 })
