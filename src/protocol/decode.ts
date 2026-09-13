@@ -190,7 +190,7 @@ export class DliveDecoder {
 	private readonly bank: number[] = new Array<number>(16).fill(0)
 	/** the NRPN run in progress, or null if the last message broke it */
 	private nrpn: NrpnRun | null = null
-	/** a `63` that has not yet been followed by `62` — a fader ping in waiting */
+	/** a `63` not yet followed by `62` — a bare select in waiting, reported as `fader_ping` */
 	private pendingPing: { n: number; addr: number } | null = null
 	private readonly midiStrips: boolean
 
@@ -213,7 +213,7 @@ export class DliveDecoder {
 		return out
 	}
 
-	/** Emit any pending fader ping. Call when the stream goes quiet. */
+	/** Emit any pending bare select as a `fader_ping`. Call when the stream goes quiet. */
 	flush(): ConsoleEvent[] {
 		const out: ConsoleEvent[] = []
 		this.flushPing(out)

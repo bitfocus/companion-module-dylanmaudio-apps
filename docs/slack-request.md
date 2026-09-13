@@ -106,6 +106,17 @@ desk's lone `Bn 63 <ch>` fader ping stalls its fixed-length framer and
 swallows the following message — plus an open question (which NRPN
 framing the console replies with) that only a desk can settle.
 
+**Correction, 13 Sept 2026.** Both halves of that finding need
+restating. The lone `Bn 63 <ch>` was never the console: MIDI Bridge's
+inbound parser (mido) discarded running status, and the desk sends
+every fader message as a complete running-status triple (bridge
+`0ff0f46`). That also settles the open question — the console replies
+and broadcasts in running status, which PR #8's framer parses
+correctly. The stall is still a real parser bug, but on a real desk it
+only fires on another client's bare select relayed raw, so it is rare
+rather than every fader move. Restate it that way before the PR comment
+goes out.
+
 ### The plan that replaced this document
 
 1. **Help land PR #8 as a contributor.** Hardware and a simulator are

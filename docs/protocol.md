@@ -330,13 +330,21 @@ Consequences, in order of how much they change:
 
 1. **A state mirror is built from the broadcast alone.** No polling. The
    connect-time sync survives as belt and braces, not as the mechanism.
-2. **Query-on-ping is retired.** It existed for firmware 1.94, which
-   announced a surface fader move as a lone `Bn 63 CH` with no level.
-   2.12 sent **zero** lone pings in 40,000 records, and the feature became
-   a feedback loop on it: the `63` leg of a broadcast triple fired a Get
-   whose reply's own `63` leg fired another — 2,200 Gets/s until the
-   operator intervened. The decoder still reports a bare `63` as a
-   `fader_ping`; nothing acts on it.
+2. **Query-on-ping is retired, and the ping it answered never existed.**
+   It was built on a 2026-08-11 capture in which a surface fader move
+   seemed to arrive as a lone `Bn 63 CH` with no level. That capture went
+   through MIDI Bridge's inbound parser, `mido.Parser`, which discards
+   MIDI running status — and the desk sends every fader message in
+   running status (`b0 63 00 62 17 06 <lv>`). The parser kept the `63` and
+   threw away the level. The "ping" was the parser, not the console, on
+   1.94 as on 2.12 (bridge `0ff0f46`, 13 Sept 2026); read through a
+   running-status-aware parser, 2.12 sent **zero** lone pings in 40,000
+   records. The same artefact explains the loop: the `63` leg of each
+   reply fired a Get whose own running-status reply reached the bridge as
+   another lone `63` — 2,200 Gets/s until the operator intervened. The
+   decoder still reports a bare `63` as a `fader_ping`, and nothing acts
+   on it; on a real desk the only source of one is another client's
+   select, relayed raw.
 3. **Relay is raw, not semantic** — see decoder rule 4. This is the one
    that bites: another controller's *partial* NRPN arrives here missing
    its select leg.

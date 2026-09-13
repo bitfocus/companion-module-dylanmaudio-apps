@@ -229,8 +229,8 @@ for base in (1, 12):
     # on-then-immediately-off. Capture the real pair on 2026-09-04.
     R(f"rx.mute.velocity0.ignored.{b}", "hardware", [0x90 | n, 0x00, 0x7F, 0x90 | n, 0x00, 0x00], [{"kind": "mute", "type": "input", "index": 1, "on": True}], base=base, note="the console's mute pair, confirmed on hardware: a desk mute press broadcasts 7F (or 3F for off) then the 00 terminator. Reading the terminator as a mute-off makes every desk mute arrive as on-then-immediately-off")
     R(f"rx.mute.dca3.{b}", "hardware", [0x90 | (n + 4), 0x38, 0x7F], [{"kind": "mute", "type": "dca", "index": 3, "on": True}], base=base)
-    R(f"rx.ping.input1.{b}", "hardware", [0xB0 | n, 0x63, 0x00], [{"kind": "fader_ping", "type": "input", "index": 1}], base=base, note="lone NRPN MSB — fader moved, no level")
-    R(f"rx.ping.stereogroup2.{b}", "hardware", [0xB0 | (n + 1), 0x63, 0x41], [{"kind": "fader_ping", "type": "stereo_group", "index": 2}], base=base)
+    R(f"rx.ping.input1.{b}", "inferred", [0xB0 | n, 0x63, 0x00], [{"kind": "fader_ping", "type": "input", "index": 1}], base=base, note="a bare 63 decodes as fader_ping. NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw")
+    R(f"rx.ping.stereogroup2.{b}", "inferred", [0xB0 | (n + 1), 0x63, 0x41], [{"kind": "fader_ping", "type": "stereo_group", "index": 2}], base=base, note="NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw")
     R(f"rx.fader.input1.unity.{b}", "single", [0xB0 | n, 0x63, 0x00, 0xB0 | n, 0x62, 0x17, 0xB0 | n, 0x06, 0x6B], [{"kind": "fader", "type": "input", "index": 1, "level": 107}], base=base, note="Get Fader reply shape (assumed = set shape). No ping is emitted when the triple completes.")
     R(f"rx.scene.129.{b}", "hardware", [0xB0 | n, 0x00, 0x01, 0xC0 | n, 0x01], [{"kind": "scene", "scene": 130}], base=base, note="bank 1, pc 1 → scene 130")
     R(f"rx.scene.1.nobank.{b}", "hardware", [0xC0 | n, 0x00], [{"kind": "scene", "scene": 1}], base=base, note="lone PC with no bank seen this session → bank 0")
@@ -259,12 +259,12 @@ R("rx.nrpn.latch_persists", "hardware", [0xB0, 0x63, 0x07, 0xB0, 0x62, 0x17, 0xB
   [{"kind": "fader", "type": "input", "index": 8, "level": 16},
    {"kind": "fader", "type": "input", "index": 8, "level": 32},
    {"kind": "fader", "type": "input", "index": 8, "level": 48}], note="address latched: repeated Data Entry keeps applying to input 8")
-R("rx.nrpn.ping_then_ping", "hardware", [0xB0, 0x63, 0x00, 0xB0, 0x63, 0x01],
+R("rx.nrpn.ping_then_ping", "inferred", [0xB0, 0x63, 0x00, 0xB0, 0x63, 0x01],
   [{"kind": "fader_ping", "type": "input", "index": 1}, {"kind": "fader_ping", "type": "input", "index": 2}],
-  note="two pings: the first 63 is emitted as a ping when the next 63 arrives (or on flush)")
-R("rx.nrpn.bare_select_then_mute", "hardware", [0xB0, 0x63, 0x00, 0x90, 0x03, 0x7F],
+  note="two bare selects: the first 63 is emitted as a fader_ping when the next 63 arrives (or on flush). NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw")
+R("rx.nrpn.bare_select_then_mute", "inferred", [0xB0, 0x63, 0x00, 0x90, 0x03, 0x7F],
   [{"kind": "fader_ping", "type": "input", "index": 1}, {"kind": "mute", "type": "input", "index": 4, "on": True}],
-  note="a bare 63 with no 62 after it. On 2.12 the CONSOLE never originates one - this is another client's select, relayed raw - so the fader_ping event means 'somebody selected an address', not 'the desk announced a move'. The following message flushes it. Named ping_then_mute until 8 Sep 2026, which read as though the desk pings")
+  note="a bare 63 with no 62 after it. On 2.12 the CONSOLE never originates one - this is another client's select, relayed raw - so the fader_ping event means 'somebody selected an address', not 'the desk announced a move'. The following message flushes it. Named ping_then_mute until 8 Sep 2026, which read as though the desk pings. Demoted from hardware 13 Sep 2026: never observed on a desk — see rx.ping.input1")
 R("rx.nrpn.param.main_assign", "two-impl", [0xB0, 0x63, 0x00, 0xB0, 0x62, 0x18, 0xB0, 0x06, 0x7F],
   [{"kind": "param", "type": "input", "index": 1, "param": 0x18, "value": 0x7F}])
 R("rx.sysex.unterminated_aborted_by_status", "hardware", HDR + [0x00, 0x02, 0x00, ord("K"), 0x90, 0x01, 0x7F],

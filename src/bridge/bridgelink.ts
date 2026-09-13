@@ -5,7 +5,7 @@
  * fixtures/api/exchanges.json (authored bridge-side, vendored here).
  *
  * Division of labour versus direct mode: the bridge owns the console
- * socket, the state mirror, query-on-ping, the heartbeat and timed
+ * socket, the state mirror, the heartbeat and timed
  * fades. This side is deliberately thin — hello, one snapshot, an SSE
  * delta stream mapped into the same ConsoleState the feedbacks already
  * read, and commands posted as fixture-contract intents. Ops the API

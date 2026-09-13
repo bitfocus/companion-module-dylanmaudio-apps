@@ -259,11 +259,12 @@ export class ConsoleLink extends EventEmitter<LinkEvents> implements LinkApi {
 				this.stats.unknownEvents++
 				continue
 			}
-			// A lone `63` with no level. Firmware 2.12 never sends one — it
-			// broadcasts complete triples — and asking for the level on sight of
-			// one is what looped the show machine at 2,200 Gets/s (session
-			// §3.10). Counted so an older desk that really does ping is visible
-			// in diagnostics, but never acted on.
+			// A bare `63` with no level. No console firmware sends one for a fader
+			// move — the 2026-08-11 "fader ping" was a parser discarding running
+			// status (bridge 0ff0f46) — so this is another client's select,
+			// relayed raw. Asking for the level on sight of one is what looped a
+			// show machine at 2,200 Gets/s (session §3.10). Counted for
+			// diagnostics, never acted on.
 			if (ev.kind === 'fader_ping') {
 				this.stats.faderPings++
 				continue
@@ -461,7 +462,7 @@ export function pollIntentFor(path: string): Intent | undefined {
 			return { op, bank, socket }
 		}
 		default:
-			return undefined // mute/fader/name/colour/scene are pushed (or query-on-ping)
+			return undefined // mute/fader/name/colour/scene are pushed by the console's broadcast
 	}
 }
 

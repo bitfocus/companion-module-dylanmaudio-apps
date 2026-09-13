@@ -20,14 +20,15 @@
  * `onReplyPaths()` as events arrive. Pure enough to unit-test with a fake
  * clock.
  *
- * **Query-on-ping is gone (session 5 Sep 2026, §3.10).** It existed because
- * firmware 1.94 announced a surface fader move as a lone `63` with no level,
- * so the only way to learn the value was to ask. On 2.12 the console
- * broadcasts complete triples — zero lone pings in 40,000 records — and the
- * feature became a feedback loop: the `63` leg of a broadcast triple fired a
- * Get whose reply's own `63` leg fired another, 2,200 Gets/s until the
- * operator intervened. If an older firmware is ever shown to send bare pings
- * again, this comes back behind a firmware setting, off by default.
+ * **Query-on-ping is gone (session 5 Sep 2026, §3.10).** It was built for a
+ * "lone `63` with no level" that a 2026-08-11 capture seemed to show, and
+ * that capture came through a parser that discards MIDI running status
+ * (mido; bridge 0ff0f46, 13 Sep). The desk sends every fader message in
+ * running status, so the parser kept the `63` and dropped the level — no
+ * firmware ever sent the ping. Asking for the level on sight of one became a
+ * feedback loop at 2,200 Gets/s, because each Get's own running-status reply
+ * arrived through the same parser as another lone `63`. There is nothing to
+ * bring back.
  */
 
 import type { Intent, IntentOp } from '../protocol/intents.js'

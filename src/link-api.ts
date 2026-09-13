@@ -6,8 +6,8 @@
  *   ConsoleLink (link.ts)            — direct mode: two TCP sockets, own
  *                                      codec, scheduler, probe, fades.
  *   BridgeLink  (bridge/bridgelink.ts) — via the MIDI Bridge Client API v1:
- *                                      the bridge owns the socket, mirror,
- *                                      query-on-ping and fades; this side
+ *                                      the bridge owns the socket, mirror
+ *                                      and fades; this side
  *                                      is a thin lane client.
  */
 

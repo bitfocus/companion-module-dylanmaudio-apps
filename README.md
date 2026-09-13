@@ -7,7 +7,7 @@ desk and drive feedbacks, variables and self-labelling presets. MIT.
 
 **This module does not connect to a console directly.** It attaches to
 the MIDI Bridge app (v1.1+) as a named lane over the Client API; the
-bridge owns the console connection, the state mirror, query-on-ping,
+bridge owns the console connection, the state mirror,
 timed fades and the base channel, and every app sharing that bridge —
 a DAW, Console Control, this module — appears attributed in one MIDI
 monitor.

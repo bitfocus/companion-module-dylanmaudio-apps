@@ -104,7 +104,7 @@
   },
   {
    "id": "rx.ping.input1.b1",
-   "tier": "hardware",
+   "tier": "inferred",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -116,11 +116,11 @@
      "index": 1
     }
    ],
-   "note": "lone NRPN MSB \u2014 fader moved, no level"
+   "note": "a bare 63 decodes as fader_ping. NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw"
   },
   {
    "id": "rx.ping.stereogroup2.b1",
-   "tier": "hardware",
+   "tier": "inferred",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -131,7 +131,8 @@
      "type": "stereo_group",
      "index": 2
     }
-   ]
+   ],
+   "note": "NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw"
   },
   {
    "id": "rx.fader.input1.unity.b1",
@@ -313,7 +314,7 @@
   },
   {
    "id": "rx.ping.input1.b12",
-   "tier": "hardware",
+   "tier": "inferred",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 12,
@@ -325,11 +326,11 @@
      "index": 1
     }
    ],
-   "note": "lone NRPN MSB \u2014 fader moved, no level"
+   "note": "a bare 63 decodes as fader_ping. NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw"
   },
   {
    "id": "rx.ping.stereogroup2.b12",
-   "tier": "hardware",
+   "tier": "inferred",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 12,
@@ -340,7 +341,8 @@
      "type": "stereo_group",
      "index": 2
     }
-   ]
+   ],
+   "note": "NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw"
   },
   {
    "id": "rx.fader.input1.unity.b12",
@@ -576,7 +578,7 @@
   },
   {
    "id": "rx.nrpn.ping_then_ping",
-   "tier": "hardware",
+   "tier": "inferred",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -593,11 +595,11 @@
      "index": 2
     }
    ],
-   "note": "two pings: the first 63 is emitted as a ping when the next 63 arrives (or on flush)"
+   "note": "two bare selects: the first 63 is emitted as a fader_ping when the next 63 arrives (or on flush). NOT a desk behaviour. The 2026-08-11 'hardware' capture behind this went through mido, which discards running status (bridge 0ff0f46): the desk sent complete triples and the parser kept only the 63. Demoted to inferred 13 Sep 2026. On a real desk a bare 63 only arrives as another client's select, relayed raw"
   },
   {
    "id": "rx.nrpn.bare_select_then_mute",
-   "tier": "hardware",
+   "tier": "inferred",
    "dir": "rx",
    "socket": "mixrack",
    "base_channel": 1,
@@ -615,7 +617,7 @@
      "on": true
     }
    ],
-   "note": "a bare 63 with no 62 after it. On 2.12 the CONSOLE never originates one - this is another client's select, relayed raw - so the fader_ping event means 'somebody selected an address', not 'the desk announced a move'. The following message flushes it. Named ping_then_mute until 8 Sep 2026, which read as though the desk pings"
+   "note": "a bare 63 with no 62 after it. On 2.12 the CONSOLE never originates one - this is another client's select, relayed raw - so the fader_ping event means 'somebody selected an address', not 'the desk announced a move'. The following message flushes it. Named ping_then_mute until 8 Sep 2026, which read as though the desk pings. Demoted from hardware 13 Sep 2026: never observed on a desk \u2014 see rx.ping.input1"
   },
   {
    "id": "rx.nrpn.param.main_assign",

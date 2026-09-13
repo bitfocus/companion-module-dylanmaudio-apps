@@ -103,6 +103,11 @@ export const INTENT_TIER: Record<IntentOp, 'hardware' | 'two-impl' | 'single' | 
 export type ConsoleEvent =
 	| { kind: 'mute'; type: ChannelType; index: number; on: boolean }
 	| { kind: 'fader'; type: ChannelType; index: number; level: number }
+	/**
+	 * A bare `63` with no parameter or level after it. The name is historical:
+	 * no console sends this for a fader move (that was a parser dropping running
+	 * status). On a real desk it is another client's select, relayed raw.
+	 */
 	| { kind: 'fader_ping'; type: ChannelType; index: number }
 	| { kind: 'param'; type: ChannelType; index: number; param: number; value: number }
 	| { kind: 'scene'; scene: number }

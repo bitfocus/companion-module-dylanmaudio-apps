@@ -82,7 +82,7 @@ describe('ConsoleLink', () => {
 		t.receive(nameReply(0, 0, 'Kick'))
 		vi.advanceTimersByTime(50)
 		t.sent.length = 0
-		t.receive([0xb0, 0x63, 0x0b]) // a lone `63`, as firmware 1.94 sent
+		t.receive([0xb0, 0x63, 0x0b]) // a bare `63`: another client's select, relayed raw
 		vi.advanceTimersByTime(80)
 		expect(link.stats.faderPings).toBe(1)
 		expect(t.sent).toHaveLength(0)
