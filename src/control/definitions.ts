@@ -113,6 +113,7 @@ export function buildControlActions(cat: Catalogue, send: Send): CompanionAction
 			case 'number': {
 				const min = c.min ?? -1_000_000
 				const max = c.max ?? 1_000_000
+				const nudge = nudgeable(c)
 				defs[id] = {
 					name: c.label,
 					description,
@@ -121,11 +122,11 @@ export function buildControlActions(cat: Catalogue, send: Send): CompanionAction
 							type: 'dropdown',
 							id: 'mode',
 							label: 'Action',
-							default: c.step ? 'nudge' : 'set',
+							default: nudge ? 'nudge' : 'set',
 							disableAutoExpression: true,
 							choices: [
 								{ id: 'set', label: 'Set to a value' },
-								...(c.step ? [{ id: 'nudge', label: `Nudge by steps of ${c.step}` }] : []),
+								...(nudge ? [{ id: 'nudge', label: `Nudge by steps of ${c.step}` }] : []),
 							],
 						},
 						{
@@ -175,6 +176,16 @@ export function buildControlActions(cat: Catalogue, send: Send): CompanionAction
 		}
 	}
 	return defs
+}
+
+/**
+ * A nudge moves from the app's current value, so it needs a step and a state
+ * key to read that value from. Console Control's marker and region numbers
+ * have a step but no state — there is no "current marker" to nudge from —
+ * so they are only ever set.
+ */
+function nudgeable(c: ControlDef): boolean {
+	return Boolean(c.step && c.state)
 }
 
 /** What makes a control special, for the action's description. */
@@ -350,7 +361,7 @@ export function buildControlPresets(
 						steps: [{ down: [], up: [] }],
 					})
 				}
-				if (c.step) {
+				if (nudgeable(c)) {
 					for (const [dir, steps] of [
 						['down', -1],
 						['up', 1],

@@ -101,20 +101,55 @@ describe('a Talk Light Trigger connection', () => {
 	})
 })
 
+const OPTS = { talkFlashHz: 2, talkFlashCooldownS: 10, talkFlashPage: 0 }
+
 describe('a Pilot Tone Trigger connection', () => {
 	it('has no talk flash', async () => {
 		const mock = new CtlMock(load('ptt.json'))
 		await mock.start()
 		const host = fakeHost('ptt')
-		const mode = new ControlAppMode(host as never, 'ptt', '127.0.0.1', mock.port, {
-			talkFlashHz: 2,
-			talkFlashCooldownS: 10,
-		})
+		const mode = new ControlAppMode(host as never, 'ptt', '127.0.0.1', mock.port, OPTS)
 		mode.start()
 		await waitFor(() => 'ctl_ptt__failback_mode' in host.actions, 'catalogue defined')
 		expect(mode.flash).toBeNull()
 		expect(host.actions[TALK_FLASH_EXIT]).toBeUndefined()
 		expect(host.variableDefs).not.toHaveProperty('talk_active')
+		mode.stop()
+		await mock.stop()
+	})
+})
+
+describe('a Time Code Tool connection', () => {
+	it('follows the timecode, digit by digit, into variables', async () => {
+		const mock = new CtlMock(load('tct.json'))
+		await mock.start()
+		const host = fakeHost('tct')
+		const mode = new ControlAppMode(host as never, 'tct', '127.0.0.1', mock.port, OPTS)
+		mode.start()
+		await waitFor(() => mock.requests.some((r) => r.path === '/ctl/v1/stream'), 'stream')
+		mock.publish('tct.state', 'locked')
+		mock.publish('tct.tc_h', 10)
+		mock.publish('tct.tc_f', 12)
+		mock.publish('tct.timecode', '10:00:00:12')
+		await waitFor(() => host.vars.timecode === '10:00:00:12', 'timecode')
+		expect(host.vars).toMatchObject({ state: 'locked', tc_h: 10, tc_f: 12 })
+		expect(host.checked).toContain('st_tct__state__is')
+		mode.stop()
+		await mock.stop()
+	})
+})
+
+describe('a Console Control connection', () => {
+	it("logs the app's own reason when it refuses, word for word", async () => {
+		const mock = new CtlMock(load('cxc.json'))
+		await mock.start()
+		const host = fakeHost('cxc')
+		const mode = new ControlAppMode(host as never, 'cxc', '127.0.0.1', mock.port, OPTS)
+		mode.start()
+		await waitFor(() => 'ctl_cxc__go-to-marker' in host.actions, 'catalogue defined')
+		await host.actions['ctl_cxc__go-to-marker']?.callback({ options: { mode: 'set', value: 9 } } as never)
+		const reason = 'Show Mode: Go to Marker is not available with no markers.'
+		await waitFor(() => host.logs.some((m) => m.includes(reason)), 'refusal logged')
 		mode.stop()
 		await mock.stop()
 	})

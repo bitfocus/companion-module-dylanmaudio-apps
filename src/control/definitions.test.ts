@@ -1,8 +1,8 @@
 /**
- * Catalogue → Companion definitions. The shipping apps' real catalogues come
- * first; the demo contract below them covers the kinds no shipping app uses
- * yet (a text control). The important tests are the wire ones: each kind of
- * action must put exactly the value on the wire that fixtures/control pins.
+ * Catalogue → Companion definitions: the demo contract first (every kind of
+ * control in one place), then each app's real catalogue. The important tests
+ * are the wire ones: each action must put exactly the value on the wire that
+ * fixtures/control pins.
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -221,7 +221,7 @@ describe('presets', () => {
 	})
 })
 
-// ------------------------------------------------------- the shipping apps
+// ------------------------------------------------------------ the five apps
 
 type Fx = typeof fx
 function loadFx(file: string): { fx: Fx; cat: Catalogue } {
@@ -314,5 +314,125 @@ describe('Talk Light Trigger (fixtures/control/tlt.json)', () => {
 		expect(Object.keys(presets)).toEqual(
 			expect.arrayContaining(['p_tlt__run', 'p_tlt__threshold__up', 'p_tlt__threshold__down']),
 		)
+	})
+})
+
+describe('Time Code Tool (fixtures/control/tct.json)', () => {
+	const { fx: xf, cat: xc } = loadFx('tct.json')
+
+	it('each control puts on the wire exactly what the fixture pins', async () => {
+		expect(await pressIn(xc, 'ctl_tct__run', { mode: 'on' })).toEqual(wireIn(xf, 'cmd.run.on'))
+		expect(await pressIn(xc, 'ctl_tct__mode', { value: 'generate' })).toEqual(wireIn(xf, 'cmd.mode.generate'))
+		expect(await pressIn(xc, 'ctl_tct__input', { value: 'next' })).toEqual(wireIn(xf, 'cmd.input.next'))
+		expect(await pressIn(xc, 'ctl_tct__mtc_out', { mode: 'toggle' })).toEqual(wireIn(xf, 'cmd.mtc_out.toggle'))
+		expect(await pressIn(xc, 'ctl_tct__ltc_out', { mode: 'off' })).toEqual(wireIn(xf, 'cmd.ltc_out.off.locked'))
+		expect(await pressIn(xc, 'ctl_tct__reset_counters', {})).toEqual(wireIn(xf, 'cmd.reset_counters'))
+		expect(await pressIn(xc, 'ctl_tct__generate_start', { value: '09:59:50:00' })).toEqual(
+			wireIn(xf, 'cmd.generate_start.ok'),
+		)
+		expect(await pressIn(xc, 'ctl_tct__generate_rate', { value: '30' })).toEqual(wireIn(xf, 'cmd.generate_rate.ok'))
+	})
+
+	it("checks a start timecode's shape, and leaves an impossible one for the app to refuse", () => {
+		const opts = buildControlActions(xc, async () => undefined).ctl_tct__generate_start?.options as unknown as {
+			regex: string
+		}[]
+		const re = new RegExp(opts[0].regex.slice(1, -1))
+		expect(re.test(wireIn(xf, 'cmd.generate_start.ok').value as string)).toBe(true)
+		expect(re.test(wireIn(xf, 'cmd.generate_start.bad_value').value as string)).toBe(false)
+		expect(re.test(wireIn(xf, 'cmd.generate_start.not_a_timecode').value as string)).toBe(true)
+	})
+
+	it('the six states are one feedback; the input reads as the app names it', () => {
+		const fb = buildControlFeedbacks(xc, () => null)
+		const state = fb.st_tct__state__is?.options as unknown as { choices: { id: string }[] }[]
+		expect(state[0].choices.map((c) => c.id)).toEqual([
+			'stopped',
+			'no_signal',
+			'locked',
+			'freewheel',
+			'clip',
+			'generating',
+		])
+		const source = fb.st_tct__source__is?.options as unknown as { choices: unknown }[]
+		expect(source[0].choices).toEqual([
+			{ id: 'ltc', label: 'LTC (audio)' },
+			{ id: 'mtc', label: 'MTC (MIDI)' },
+		])
+	})
+
+	it('the timecode digits are separate variables, for a multi-key readout', () => {
+		expect(Object.keys(buildControlVariables(xc))).toEqual(
+			expect.arrayContaining(['timecode', 'tc_h', 'tc_m', 'tc_s', 'tc_f', 'state', 'discontinuities']),
+		)
+		expect(controlVariableValues(xc, { 'tct.tc_h': 9, 'tct.tc_f': 24, 'tct.tc_m': null })).toEqual({
+			tc_h: 9,
+			tc_f: 24,
+			tc_m: undefined,
+		})
+	})
+})
+
+describe('Console Control (fixtures/control/cxc.json)', () => {
+	const { fx: cf, cat: cc } = loadFx('cxc.json')
+
+	it('each control puts on the wire exactly what the fixture pins', async () => {
+		expect(await pressIn(cc, 'ctl_cxc__play', {})).toEqual(wireIn(cf, 'cmd.play'))
+		expect(await pressIn(cc, 'ctl_cxc__locate', { value: '00:10:00:00' })).toEqual(wireIn(cf, 'cmd.locate'))
+		// the fixture's case "cmd.go-to-marker" sends go-to-region
+		expect(await pressIn(cc, 'ctl_cxc__go-to-region', { mode: 'set', value: 2 })).toEqual(
+			wireIn(cf, 'cmd.go-to-marker'),
+		)
+		expect(await pressIn(cc, 'ctl_cxc__go-to-marker', { mode: 'set', value: 9 })).toEqual(
+			wireIn(cf, 'cmd.refused_by_the_app'),
+		)
+		expect(await pressIn(cc, 'ctl_cxc__stop', {})).toEqual(wireIn(cf, 'cmd.stop.locked'))
+		expect(await pressIn(cc, 'ctl_cxc__panic', {})).toEqual(wireIn(cf, 'cmd.panic.while_locked'))
+	})
+
+	it('keeps the command names, hyphens and all, in the action ids', () => {
+		const ids = Object.keys(buildControlActions(cc, async () => undefined))
+		expect(ids).toHaveLength(16)
+		expect(ids).toEqual(
+			expect.arrayContaining(['ctl_cxc__go-to-start', 'ctl_cxc__toggle-show-mode', 'ctl_cxc__go-to-marker']),
+		)
+	})
+
+	it('marker and region numbers are set, never nudged: there is no current marker to nudge from', () => {
+		const a = buildControlActions(cc, async () => undefined)
+		const [mode, value] = a['ctl_cxc__go-to-marker']?.options as unknown as {
+			default: unknown
+			choices?: { id: string }[]
+		}[]
+		expect(mode.default).toBe('set')
+		expect(mode.choices?.map((c) => c.id)).toEqual(['set'])
+		expect(value).toMatchObject({ min: 0, step: 1, default: 0 })
+		const { presets } = buildControlPresets(cc, 'cxc')
+		expect(Object.keys(presets).filter((k) => k.startsWith('p_cxc__go-to-marker'))).toEqual([])
+	})
+
+	it('says which commands are show-critical', () => {
+		const a = buildControlActions(cc, async () => undefined)
+		for (const id of ['stop', 'go-to-start', 'record', 'conform-console', 'toggle-show-mode'])
+			expect(a[`ctl_cxc__${id}`]?.description).toMatch(/^Show-critical:/)
+		expect(a.ctl_cxc__play?.description).toBeUndefined()
+	})
+})
+
+describe('MIDI Bridge app control (fixtures/control/bridge.json)', () => {
+	const { fx: bf, cat: bc } = loadFx('bridge.json')
+
+	it('each control puts on the wire exactly what the fixture pins', async () => {
+		expect(await pressIn(bc, 'ctl_bridge__run', { mode: 'on' })).toEqual(wireIn(bf, 'cmd.run.on'))
+		expect(await pressIn(bc, 'ctl_bridge__run', { mode: 'off' })).toEqual(wireIn(bf, 'cmd.run.off'))
+		expect(await pressIn(bc, 'ctl_bridge__restart', {})).toEqual(wireIn(bf, 'cmd.restart'))
+		expect(await pressIn(bc, 'ctl_bridge__autoreconnect', { mode: 'off' })).toEqual(wireIn(bf, 'cmd.autoreconnect.off'))
+	})
+
+	it('stopping and restarting are show-critical; auto-reconnect is not', () => {
+		const a = buildControlActions(bc, async () => undefined)
+		expect(a.ctl_bridge__run?.description).toMatch(/Show-critical when set to Off/)
+		expect(a.ctl_bridge__restart?.description).toMatch(/^Show-critical:/)
+		expect(a.ctl_bridge__autoreconnect?.description).toBeUndefined()
 	})
 })
