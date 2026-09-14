@@ -83,16 +83,13 @@ here without a new version of this module.
 - **Styled keys.** Each app also has a _styled keys_ preset section, in
   the app's own look:
   - its **logo** and its **menu-bar icon** (mirroring every state, with
-    MIDI Bridge's activity flash). Pressing either opens the app, or starts
-    it if it isn't running;
+    MIDI Bridge's activity flash). Pressing either brings the app to the
+    front; if it isn't running, the log says to start it;
   - a round **Run** button that fills green while the app runs;
   - a **level meter** (Talk Light's and Pilot Tone's with the threshold marked);
   - Pilot Tone's **Auto / Latch** keys and **status tile**, amber when
     latched, as in the app;
   - Console Control's **status tiles**: timecode, transport, mode and output.
-
-  Starting an app uses macOS's `open`, which is why the module asks for
-  permission to run programs. A running app is never started twice.
 
 - **Console Control's presets follow its menus**: a section per
   category (Transport, Console, Cue, Navigate, Track, Edit, Markers, …),
