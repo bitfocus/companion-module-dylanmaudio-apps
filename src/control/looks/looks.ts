@@ -234,9 +234,10 @@ export function buildLookPresets(
 				trackStyle: 'dimmed',
 				stops: stops(meter.base),
 			},
+			// concat(), not +: Companion's + adds numbers unless string joining is on, so -53 + ' dB' is NaN.
 			text(
 				'db',
-				expr(`isNumber(${level}) ? round(${level}) + ' dB' : '--'`),
+				expr(`isNumber(${level}) ? concat(round(${level}), ' dB') : '--'`),
 				{ x: 0, y: 66, w: 100, h: 32 },
 				{ font: 'companion-mono' },
 			),

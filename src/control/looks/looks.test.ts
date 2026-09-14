@@ -147,6 +147,25 @@ describe('styled keys', () => {
 		expect(line('tct')).toBeUndefined()
 	})
 
+	it('no expression joins text with +, which Companion adds as numbers', () => {
+		// Companion's + only joins strings when an expression asks for it: -53 + ' dB' draws NaN. concat() joins.
+		const presets = [...APPS.flatMap((app) => Object.values(looksFor(app).presets))]
+		presets.push(...(Object.values(timecodeReadoutPresets(catOf('tct'), 'tct')?.presets ?? {}) as Json[]))
+		const expressions: string[] = []
+		const walk = (x: unknown): void => {
+			if (Array.isArray(x)) x.forEach(walk)
+			else if (x && typeof x === 'object') {
+				const o = x as Json
+				if (o.isExpression === true && typeof o.value === 'string') expressions.push(o.value)
+				Object.values(o).forEach(walk)
+			}
+		}
+		presets.forEach(walk)
+		expect(expressions.length).toBeGreaterThan(0)
+		for (const e of expressions) expect(e, e).not.toMatch(/['"`]\s*\+|\+\s*['"`]/)
+		expect(JSON.stringify(looksFor('tlt').presets.p_tlt__look_meter)).toContain("concat(round($(tlt:level_db)), ' dB')")
+	})
+
 	it('with no catalogue there is still the logo, which starts the app', () => {
 		expect(Object.keys(buildLookPresets('ptt', null, 'ptt', (k) => k).presets)).toEqual(['p_ptt__look_logo'])
 	})
