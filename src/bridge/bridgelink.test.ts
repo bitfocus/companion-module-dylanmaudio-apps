@@ -224,6 +224,9 @@ describe('BridgeLink', () => {
 		link.start()
 		await waitFor(() => link.status === 'failure', 'failure')
 		expect(link.statusMessage).toMatch(/console link is down/)
+		// The link reports failure before it has reopened its stream; an event pushed
+		// into no stream is lost, and the test then waits out its timeout.
+		await waitFor(() => bridge.streamOpen, 'stream open')
 		bridge.pushEvent('connection', { console: 'connected' })
 		await waitFor(() => link.isOk, 'recovers')
 	})
