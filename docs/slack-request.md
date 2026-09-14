@@ -1,91 +1,116 @@
-# Bitfocus repo request — process + message
+# Bitfocus repo request: `companion-module-dylanmaudio`
 
-> **SUPERSEDED, 27–29 Aug 2026.** Kept for the record; the reasoning
-> below is no longer the plan. What actually happened, and what replaced
-> it, is in "Outcome" at the foot of this file. Read that first.
+The second request, now that the module meets the conditions set in
+August. The first request (`dylanmaudio-dlive`, 27–29 Aug 2026) and how it
+was answered are kept at the foot of this file.
 
-## Process
+## Process (checked 14 Sep 2026)
 
-1. **Join the Bitfocus Slack**: invite link at <https://bitfocus.io/api/slackinvite>
-   (if it's dead, email `connections@bitfocus.io`).
-2. **Post the message below in `#module-development`.** This is the whole
-   "application" — Bitfocus never reviews a concept, only a namespace. The
-   reply is effectively the go/no-go on the name.
-3. They create `github.com/bitfocus/companion-module-dylanmaudio-dlive`
-   and grant your GitHub account (**dylanmaudio**) write access.
-4. We push our history there, tag `v1.0.0` when ready, then submit the tag
-   at <https://developer.bitfocus.io> (log in with GitHub → My Connections →
-   Submit Version).
-5. Volunteer review — days to weeks, feedback lands in the portal. On
-   approval it's installable by anyone on Companion 5.0+.
+Sources: companion.free's _Releasing your module_ (edited 31 Aug 2026) and
+the CI workflow every module repo runs (`bitfocus/actions`
+module-checks.yaml, 8 Sep 2026).
 
-Before step 2 it's worth pushing the code to your own GitHub
-(`github.com/dylanmaudio/companion-module-dylanmaudio-dlive`) so the
-message can link to real code — reviewers respond much better to a repo
-than a promise. Say the word and I'll create and push it.
+1. **Post in `#module-development`** on the Bitfocus Slack. Include your
+   GitHub username and the module name. There is no form or template; an
+   issue in `bitfocus/companion-module-requests` does not count.
+2. **A maintainer creates `bitfocus/companion-module-dylanmaudio`** and
+   gives `dylanmaudio` write access. Push this repo's history there.
+3. **Point the manifest's `repository` and `bugs` at the bitfocus repo**,
+   and set `package.json`'s repository URL to match.
+4. **Tag `v1.0.0`** (it must equal `package.json`'s version) and submit
+   the tag at <https://developer.bitfocus.io>: My Connections → Submit
+   Version. Volunteers review it, and feedback arrives in the portal. Once
+   approved, anyone on Companion 4.0+ can install the module.
+
+### What the CI gate checks, and where this repo stands
+
+| Check                                                               | Status          |
+| ------------------------------------------------------------------- | --------------- |
+| `yarn.lock` present, no `package-lock.json`                         | ✓               |
+| repo is `companion-module-<id>`, and the manifest id equals `<id>`  | ✓ `dylanmaudio` |
+| tag equals the `package.json` version                               | at tag time     |
+| manifest `runtime.apiVersion` is `0.0.0` (the build fills it in)    | ✓               |
+| `products` not empty, no template placeholders                      | ✓               |
+| `companion/HELP.md` exists                                          | ✓               |
+| `@companion-module/tools` ≥ 3.1.0                                   | ✓ 3.1.0         |
+| `yarn build`, then `companion-module-build`, then the package loads | ✓ locally       |
+| `package.json` licence MIT                                          | ✓               |
+
+### Settled before posting
+
+- **The condition from August.** The module can't connect to a console.
+  It talks only to the MIDI Bridge, and the direct code is a test harness
+  kept out of `dist`. The manufacturer is `dylanmaudio`, and the products
+  are the apps.
+- **No special permissions.** Keys no longer start apps (that needed
+  `child-process`, which Companion flags as dangerous). They bring a
+  running app to the front.
+- **The first public version is 1.0.0**, as Bitfocus's versioning guide
+  asks.
+- **`legacyIds` is empty.** `dylanmaudio-dlive` was never published, so
+  there's nothing to migrate from.
+- **The id stays `dylanmaudio`**, with `dylanmaudio-apps` offered if they
+  want the `manufacturer-product` shape. A rename later needs a
+  `legacyIds` entry and a new Bitfocus repo, so settle it in the thread.
+
+### Worth doing first (optional)
+
+- **The PR #8 comment.** Reviewers said they'd rather see you help the
+  existing `allenheath-dlive` module. The drafted findings on
+  `BrentonStarkie`'s PR #8, as corrected on 13 Sep, haven't been posted.
+  Posting them first backs up the offer at the end of the message.
 
 ## The message
 
-> Hi! I'd like to request a repo for a new connection module:
-> **companion-module-dylanmaudio-dlive** — GitHub username **dylanmaudio**.
+> Hi! A follow-up to my request from late August (`dylanmaudio-dlive`).
+> I've made the changes you asked for, and I'd like to request a repo under
+> the new name:
 >
-> Being upfront: two dLive modules already exist (`allenheath-dlive` and
-> `allenheath-dlive-ilive`). This isn't a fork of either — it's built
-> around the thing neither has: **state feedback**. The dLive pushes mutes
-> and scene recalls over MIDI/TCP and announces fader moves, and this
-> module mirrors that into Companion: boolean/value feedbacks, ~2000
-> variables (names, colours, mutes, levels in dB), presets that label and
-> colour themselves from the show, timed dB-linear fades on every level
-> action, a named mapping table for the console's Actions system, and
-> scene names imported from the console's show file (the protocol has no
-> Get for them). Connection status is probe-gated — it only goes green
-> once the desk actually answers a Get, which addresses the long-standing
-> "shows connected but isn't" reports on the existing modules (e.g.
-> allenheath-dlive-ilive #16).
+> **Module:** `companion-module-dylanmaudio` · **GitHub:** `dylanmaudio` ·
+> **Code:** https://github.com/dylanmaudio/companion-module-dylanmaudio
 >
-> Tech: TypeScript on `@companion-module/base` 2.1 (Companion 5.0+), the
-> wire protocol pinned by a golden byte-fixture suite, unit + end-to-end
-> tests against a console simulator, plus verification on my own dLive
-> system (I mix on dLive professionally; a hardware capture session for
-> the remaining protocol unknowns is booked for early September). Code:
-> <REPO LINK>.
+> What's changed since August:
 >
-> On the name: I went with `dylanmaudio-dlive` (the manifest's
-> manufacturer field is "Allen & Heath", so it still lists under A&H in
-> the connections browser) rather than an `allenheath-*` id, to avoid
-> reading as a replacement for Tim Steer's module. Happy to switch to
-> something like `allenheath-dlive-statefeedback` if you'd rather keep
-> the manufacturer prefix. I expect to add sibling modules for my other
-> dLive tools under the same prefix later, but I'm only requesting this
-> one repo for now.
+> - **No direct console connection.** The module only talks to my own
+>   apps, on the same machine or the LAN. For dLive, that's the dLive
+>   MIDI Bridge app, which owns the connection to the desk. The module never
+>   opens a socket to a console, and the old direct code survives only as a
+>   test harness that isn't in the built package.
+> - **The manufacturer is `dylanmaudio`.** The products are my apps: dLive
+>   MIDI Bridge, Talk Light Trigger, Pilot Tone Trigger, Time Code Tool and
+>   Console Control. Nothing lists under Allen & Heath.
+>
+> How it works: one connection per app. Each app publishes a small local
+> control API with a catalogue of its controls and live state. The module
+> builds actions, feedbacks, variables and presets from that catalogue, so a
+> feature added to an app appears in Companion without a module release.
+>
+> Tech: TypeScript on `@companion-module/base` 2.1 (Companion 5.0+), MIT,
+> no special permissions. It has 400+ unit tests plus end-to-end tests
+> against a dLive simulator, and I've been running it live on Companion 5.0.5
+> with a Stream Deck XL.
+>
+> On the name: it's plain `dylanmaudio` because the one module covers every
+> dylanmaudio app. If you'd rather keep the `manufacturer-product` shape,
+> `dylanmaudio-apps` works for me.
+>
+> I'm also still keen to help get state feedback into `allenheath-dlive` via
+> PR #8. I've tested it against my simulator, and my notes are on the PR.
 >
 > Thanks!
 
-## Why the message is shaped this way
-
-- **Names the incumbents before a reviewer does** — the brief's research
-  found reviewers respond far better to that than to discovering overlap
-  themselves, and Bitfocus has already accepted a second dLive module once
-  (the `allenheath-dlive` id was re-granted to a new maintainer after the
-  original was renamed `-ilive`).
-- **Differentiator in one sentence** (state feedback), then evidence, so
-  a skimming maintainer gets the point in ten seconds.
-- **Concedes the naming question up front** with a workable fallback —
-  the id is a branding choice, not a discoverability one, since listing
-  groups by the manufacturer field (`devcore-mixingstation` precedent).
-- **Mentions the family, requests one repo** — an empty-repo land-grab in
-  someone else's org would undercut the credibility the framing buys.
-- **No feature promises that depend on September** — sends calibration,
-  preamp gain range etc. are internal concerns; the module ships useful
-  without them.
+Drop the last paragraph if the PR #8 comment isn't posted yet, or change
+it to "notes to follow on the PR".
 
 ---
 
-## Outcome (29 Aug 2026)
+## The first request (27–29 Aug 2026), for the record
 
-The request was made and met with immediate resistance — two reviewers
-asked, reasonably, "why not add state feedback to the existing modules
-instead?" Then a concrete acceptance spec was offered:
+The first message asked for `companion-module-dylanmaudio-dlive`, a
+direct-to-console dLive module with state feedback, with the manifest's
+manufacturer set to Allen & Heath. Two reviewers asked, reasonably, why
+state feedback shouldn't go into the existing modules instead. Then they
+set out a concrete way forward:
 
 > Remove the ability to connect to the console directly from the module
 > and change the manifest so that it's clearly targeted toward your
@@ -93,55 +118,23 @@ instead?" Then a concrete acceptance spec was offered:
 > But we'd much rather see you contribute toward a companion module that
 > can do all of this natively.
 
-**Tim Steer (`shedworth`), the incumbent maintainer, replied warmly** —
-he built `allenheath-dlive` over a winter on a borrowed console, has no
-desk at home to test against, would welcome feedback support, and would
-prefer it as an enhancement rather than a separate module. He pointed at
-**PR #8** (`BrentonStarkie`, +3942/−55), open since February.
+Tim Steer (`shedworth`), who maintains `allenheath-dlive`, replied warmly.
+He'd welcome feedback support as an enhancement, and pointed at PR #8
+(`BrentonStarkie`), which has been open since February. Its tester deferred,
+and Tim has no desk to test on, so hardware is what's blocking it.
 
-The decisive discovery: **that PR is blocked on hardware, not code.** Its
-tester deferred in July; Tim has no console. Running its real
-`FeedbackHandler` against the Virtual dLive found a genuine defect — the
-desk's lone `Bn 63 <ch>` fader ping stalls its fixed-length framer and
-swallows the following message — plus an open question (which NRPN
-framing the console replies with) that only a desk can settle.
+**Correction, 13 Sep 2026.** The lone `Bn 63 <ch>` fader ping blamed on
+the console was really MIDI Bridge's inbound parser dropping running
+status (bridge `0ff0f46`). The desk replies and broadcasts in running
+status, which PR #8's framer parses correctly. Its framer stall is a real
+bug, but on a real desk it only fires on another client's bare select
+relayed raw. Restate it that way in the PR comment.
 
-**Correction, 13 Sept 2026.** Both halves of that finding need
-restating. The lone `Bn 63 <ch>` was never the console: MIDI Bridge's
-inbound parser (mido) discarded running status, and the desk sends
-every fader message as a complete running-status triple (bridge
-`0ff0f46`). That also settles the open question — the console replies
-and broadcasts in running status, which PR #8's framer parses
-correctly. The stall is still a real parser bug, but on a real desk it
-only fires on another client's bare select relayed raw, so it is rare
-rather than every fader move. Restate it that way before the PR comment
-goes out.
+What happened next:
 
-### The plan that replaced this document
-
-1. **Help land PR #8 as a contributor.** Hardware and a simulator are
-   what the ecosystem is short of, and they cost no roadmap control. The
-   findings and offer are drafted; posting waits until the September
-   captures can back them with real bytes.
-2. **Ship a module for the bridge, not for the console.** Manufacturer
-   `dylanmaudio`, product "dLive MIDI Bridge", no direct console path —
-   done in `a7e0b6e`. The bridge is console-agnostic by design, so the
-   same module covers other desks as drivers are added, rather than
-   becoming another per-console module.
-
-The id is **`dylanmaudio`**, decided 2026-09-11 (monorepo
-`docs/brief-companion-control.md` §9) — not the `dylanmaudio-midi-bridge`
-first considered, because the module now serves every dylanmaudio app,
-one Companion connection per app, rather than only the bridge. The
-manifest and this repo carry it from 2026-09-12, with `dylanmaudio-dlive`
-in the manifest's `legacyIds` so existing connections migrate instead of
-being orphaned. A fresh Bitfocus repo request under the new name is
-still to be made.
-
-### What was actually right in the original reasoning
-
-- Discoverability follows the `manufacturer` field, not the id — which
-  is why retargeting the manifest mattered more than the id ever did.
-- The registry repo lives in the Bitfocus org, so a rename goes through
-  them; worth getting the name right before asking.
-- Self-distribution via `.tgz` remains a working fallback.
+- The module retargeted to the bridge in `a7e0b6e`: manufacturer
+  `dylanmaudio`, and no direct option in the connection form.
+- Its id became `dylanmaudio` on 11 Sep, when it grew to cover every
+  dylanmaudio app.
+- On 14 Sep the direct path left the shipped code altogether. Before then,
+  a config carrying `transport: "direct"` could still reach it.

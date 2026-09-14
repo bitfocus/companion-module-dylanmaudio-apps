@@ -1,9 +1,11 @@
 # companion-module-dylanmaudio
 
-Bitfocus Companion module for the **dLive MIDI Bridge** application —
-control an Allen & Heath dLive with full **state feedback**: mutes,
-fader levels, names, colours and the current scene come back off the
-desk and drive feedbacks, variables and self-labelling presets. MIT.
+Bitfocus Companion module for the **dylanmaudio apps**: dLive MIDI
+Bridge, Talk Light Trigger, Pilot Tone Trigger, Time Code Tool and
+Console Control, with one connection per app. Through the **dLive MIDI
+Bridge**, an Allen & Heath dLive comes with full **state feedback**:
+mutes, fader levels, names, colours and the current scene come back off
+the desk and drive feedbacks, variables and self-labelling presets. MIT.
 
 **This module does not connect to a console directly.** It attaches to
 the MIDI Bridge app (v1.1+) as a named lane over the Client API; the
@@ -67,7 +69,7 @@ directly. **They are not reachable from the connection settings and are
 not a user-facing path.** They exist so the protocol layer can be
 verified end to end against the Virtual dLive without a console
 (`src/e2e.test.ts`), and so real hardware captures can be taken and
-replayed. `transport` remains in the config *type*, defaulted to
+replayed. `transport` remains in the config _type_, defaulted to
 `bridge`; only the tests set it to `direct`.
 
 ## Status
@@ -85,8 +87,8 @@ Byte layouts marked `two-impl` / `single` / `inferred` in
 
 ## Credits and prior art
 
-The dLive wire protocol is published by Allen & Heath (*MIDI Over TCP/IP
-Protocol V2.0*), and two MIT-licensed Companion modules got there first.
+The dLive wire protocol is published by Allen & Heath (_MIDI Over TCP/IP
+Protocol V2.0_), and two MIT-licensed Companion modules got there first.
 This module is an independent implementation — different architecture,
 built around a state mirror the others do not have — but several
 byte-level value maps were derived from their work and are gratefully

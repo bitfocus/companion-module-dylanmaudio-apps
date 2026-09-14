@@ -18,22 +18,11 @@
 	"runtime": {
 		"type": "node22",
 		"api": "nodejs-ipc",
-		"apiVersion": "2.1.3",
+		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
 	},
-	"legacyIds": ["dylanmaudio-dlive"],
+	"legacyIds": [],
 	"manufacturer": "dylanmaudio",
 	"products": ["dLive MIDI Bridge", "Talk Light Trigger", "Pilot Tone Trigger", "Time Code Tool", "Console Control"],
-	"keywords": [
-		"Audio",
-		"Sound",
-		"Mixer",
-		"dLive",
-		"Allen & Heath",
-		"MIDI",
-		"Bridge",
-		"Talk light",
-		"Pilot tone",
-		"Timecode"
-	]
+	"keywords": ["Audio", "Mixer", "dLive", "MIDI", "Talkback", "Playback failover", "LTC", "MTC", "Show control"]
 }
