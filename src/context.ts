@@ -7,6 +7,8 @@ export interface ModuleContext {
 	readonly link: LinkApi
 	readonly config: ModuleConfig
 	readonly actionsMap: ActionMapEntry[]
+	/** The connection's label: the prefix of its variables in button text, $(<label>:scene_current) */
+	readonly label: string
 	log(level: LogLevel, message: string): void
 	reloadShowFile(): Promise<void>
 	resync(): void

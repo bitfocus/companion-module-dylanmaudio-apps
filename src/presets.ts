@@ -171,12 +171,27 @@ export function buildPresets(
 	}
 
 	// ---------------------------------------------------------------- scenes
-	const sceneValues = Array.from({ length: 500 }, (_, i) => ({ value: i + 1, name: `Scene ${i + 1}` }))
+	// Named from the show where it has names, so the list reads "12 Changeover", not "Scene 12".
+	const sceneNames = ctx.link.state.sceneNames
+	const sceneValues = Array.from({ length: 500 }, (_, i) => {
+		const name = sceneNames.get(i + 1)
+		return { value: i + 1, name: name ? `${i + 1} ${name}` : `Scene ${i + 1}` }
+	})
 	presets.scene_recall = {
 		type: 'simple',
 		name: 'Recall scene',
-		style: { text: 'Scene\\n$(local:sc)', textExpression: false, size: 'auto', color: WHITE, bgcolor: DARK },
-		localVariables: [{ variableType: 'simple', variableName: 'sc', startupValue: 1 }],
+		// The name comes through a feedback local variable, as a strip's name does: a variable
+		// named from another ($(conn:scene_name_$(local:sc))) doesn't resolve in Companion.
+		style: { text: '$(local:sc)\\n$(local:name)', textExpression: false, size: 'auto', color: WHITE, bgcolor: DARK },
+		localVariables: [
+			{ variableType: 'simple', variableName: 'sc', startupValue: 1 },
+			{
+				variableType: 'feedback',
+				variableName: 'name',
+				feedbackId: 'scene_name',
+				options: { scene: expr('$(local:sc)') },
+			},
+		],
 		feedbacks: [
 			{ feedbackId: 'scene_current', options: { scene: expr('$(local:sc)') }, style: { bgcolor: GREEN, color: WHITE } },
 		],
@@ -206,7 +221,12 @@ export function buildPresets(
 	presets.scene_current = {
 		type: 'simple',
 		name: 'Current scene display',
-		style: { text: '$(dlive:scene_current)\\n$(dlive:scene_current_name)', size: 'auto', color: WHITE, bgcolor: DARK },
+		style: {
+			text: `$(${ctx.label}:scene_current)\\n$(${ctx.label}:scene_current_name)`,
+			size: 'auto',
+			color: WHITE,
+			bgcolor: DARK,
+		},
 		feedbacks: [],
 		steps: [{ down: [], up: [] }],
 	}
@@ -252,7 +272,7 @@ export function buildPresets(
 	presets.status = {
 		type: 'simple',
 		name: 'Console status',
-		style: { text: 'dLive\\n$(dlive:firmware)', size: 'auto', color: WHITE, bgcolor: RED },
+		style: { text: `dLive\\n$(${ctx.label}:firmware)`, size: 'auto', color: WHITE, bgcolor: RED },
 		feedbacks: [{ feedbackId: 'connected', options: {}, style: { bgcolor: GREEN, color: WHITE } }],
 		steps: [{ down: [{ actionId: 'resync', options: {} }], up: [] }],
 	}

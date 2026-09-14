@@ -299,6 +299,14 @@ export function buildFeedbacks(ctx: ModuleContext): CompanionFeedbackDefinitions
 			}, false),
 			unsubscribe,
 		},
+		// Names change only when the show reloads, which re-checks every feedback, so there is nothing to watch.
+		scene_name: {
+			type: 'value',
+			name: 'Scene name',
+			description: "A scene's name, from the show file or the connection's scene names (empty when it has none)",
+			options: [{ type: 'number', id: 'scene', label: 'Scene', default: 1, min: 1, max: 500 }],
+			callback: (feedback) => link.state.sceneName(Math.round(num(feedback.options, 'scene', 1))),
+		},
 		connected: {
 			type: 'boolean',
 			name: 'Console is answering',

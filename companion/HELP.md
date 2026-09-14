@@ -258,7 +258,7 @@ Fades are dB-linear and only send when the value changes (a 3 s fade is
 Mute · Fader level (value, text, above-threshold) · Channel colour
 (button takes the desk colour) · Channel name · Main / DCA / mute-group /
 mix assigned · Send level · HPF on · Preamp pad / 48 V / gain · Current
-scene is… · Console is answering.
+scene is… · Scene name · Console is answering.
 
 ## Variables
 
@@ -275,7 +275,8 @@ Global: `scene_current`, `scene_current_name`, `scene_name_<n>`,
 
 Template groups per channel type — mute buttons that take the strip's
 name and colour and go red when muted; level buttons showing the dB
-value with ±1 dB nudges; scene recall buttons that light when current;
+value with ±1 dB nudges; scene recall buttons that show the scene's name
+from the show and light when current;
 GO / Next / Previous; named Console Actions; a status button.
 
 ## Limitations (protocol, not the module)
