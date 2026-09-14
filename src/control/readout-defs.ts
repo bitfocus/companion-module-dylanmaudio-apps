@@ -1,6 +1,7 @@
 /**
  * Time Code Tool: a four-key timecode readout (hours, minutes, seconds,
- * frames), zero-padded.
+ * frames), zero-padded, in Companion Mono so the digits don't shift as they
+ * change, each under a small field label.
  *
  * Each key slices $(tct:timecode) rather than showing tct.tc_h/m/s/f. The
  * string is fixed-width HH:MM:SS:FF (with ";" before the frames in
@@ -32,8 +33,11 @@ export const readoutExpression = (label: string, start: number): string =>
 
 const BLACK = 0x000000
 const DIM = 0x9a9a9a
+const LABEL = 0x6b6b78
 const GREEN = 0x3ddc84
 const AMBER = 0xffb300
+
+type Preset = NonNullable<CompanionPresetDefinitions<ModuleSchema>[string]>
 
 export function timecodeReadoutPresets(
 	cat: Catalogue,
@@ -49,22 +53,48 @@ export function timecodeReadoutPresets(
 	const presets: CompanionPresetDefinitions<ModuleSchema> = {}
 	for (const f of READOUT_FIELDS) {
 		presets[`p_tct__readout__${f.id}`] = {
-			type: 'simple',
+			type: 'layered',
 			name: `Timecode readout: ${f.name}`,
-			style: {
-				text: readoutExpression(label, f.start),
-				textExpression: true,
-				size: 'auto',
-				color: DIM,
-				bgcolor: BLACK,
-			},
+			elements: [
+				{ type: 'box', id: 'bg', x: 0, y: 0, width: 100, height: 100, color: BLACK },
+				{
+					type: 'text',
+					id: 'field',
+					x: 0,
+					y: 4,
+					width: 100,
+					height: 20,
+					text: f.id.toUpperCase(),
+					fontsize: 11,
+					font: 'companion-sans',
+					color: LABEL,
+					halign: 'center',
+					valign: 'center',
+				},
+				{
+					type: 'text',
+					id: 'digits',
+					x: 0,
+					y: 22,
+					width: 100,
+					height: 74,
+					text: { isExpression: true, value: readoutExpression(label, f.start) },
+					fontsize: 44,
+					fontsizeAllowShrink: true,
+					font: 'companion-mono',
+					weight: 'bold',
+					color: DIM,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
 			feedbacks: lit.map(({ value, color }) => ({
 				feedbackId: enumFeedbackId(STATE_KEY),
 				options: { value },
-				style: { color },
+				styleOverrides: [{ elementId: 'digits', elementProperty: 'color', override: color }],
 			})),
 			steps: [{ down: [], up: [] }],
-		}
+		} as unknown as Preset
 	}
 	return { section: { id: 'tct_readout', name: 'Timecode readout', definitions: Object.keys(presets) }, presets }
 }

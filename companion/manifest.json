@@ -19,7 +19,10 @@
 		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "2.1.3",
-		"entrypoint": "../dist/main.js"
+		"entrypoint": "../dist/main.js",
+		"permissions": {
+			"child-process": true
+		}
 	},
 	"legacyIds": ["dylanmaudio-dlive"],
 	"manufacturer": "dylanmaudio",

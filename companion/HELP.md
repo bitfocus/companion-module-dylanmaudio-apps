@@ -69,6 +69,18 @@ here without a new version of this module.
 - **When an app isn't running**, its buttons stay put: the connection
   remembers the app's controls from last time. A press then says in the
   log that the app isn't answering.
+- **Styled keys.** Each app also has a *styled keys* preset section, in
+  the app's own look:
+  - its **logo** and its **menu-bar icon** (mirroring every state, with
+    MIDI Bridge's activity flash). Pressing either opens the app, or starts
+    it if it isn't running;
+  - a round **Run** button that fills green while the app runs;
+  - a **level meter** (Talk Light's with its threshold marked);
+  - Pilot Tone's **Automatic / Latch** keys and **status tile**, amber when
+    latched, as in the app.
+
+  Starting an app uses macOS's `open`, which is why the module asks for
+  permission to run programs. A running app is never started twice.
 - **Time Code Tool** also has a four-key **timecode readout** preset
   (hours, minutes, seconds, frames). The digits are zero-padded, green
   while locked or generating, amber in freewheel, and `--` without a

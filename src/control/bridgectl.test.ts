@@ -57,6 +57,7 @@ describe('MIDI Bridge app control inside the MIDI Bridge connection', () => {
 			'ctl_bridge__autoreconnect',
 			'ctl_bridge__restart',
 			'ctl_bridge__run',
+			'open_app',
 		])
 		expect(Object.keys(app!.variables())).toEqual(
 			expect.arrayContaining(['bridge_state', 'bridge_running', 'bridge_msg_rate', 'bridge_app_connected']),
@@ -103,7 +104,7 @@ describe('MIDI Bridge app control inside the MIDI Bridge connection', () => {
 		expect(host.logs.filter((m) => m.includes('1.1.9'))).toHaveLength(1)
 		expect(host.vars.bridge_app_connected).toBe(false)
 		expect(app.bridgeState).toBeNull()
-		expect(app.actions()).toEqual({})
+		expect(Object.keys(app.actions())).toEqual(['open_app']) // what starts the bridge app
 		expect(Object.keys(app.variables()).sort()).toEqual([
 			'bridge_app_allowed',
 			'bridge_app_connected',

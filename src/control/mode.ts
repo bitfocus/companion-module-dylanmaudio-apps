@@ -12,6 +12,7 @@ import { InstanceBase, InstanceStatus, type CompanionVariableValues, type LogLev
 import type { ModuleSchema } from '../main.js'
 import { ControlClient, type ControlStatus } from './client.js'
 import {
+	bareNaming,
 	buildControlActions,
 	buildControlFeedbacks,
 	buildControlPresets,
@@ -23,6 +24,8 @@ import {
 import { CONTROL_APPS, type AppId } from './registry.js'
 import { TalkFlash } from './talkflash.js'
 import { timecodeReadoutPresets } from './readout-defs.js'
+import { buildLookPresets } from './looks/looks.js'
+import { openAppActions, type OpenAppContext } from './openapp.js'
 import {
 	TALK_FLASH_FEEDBACK,
 	TALK_FLASH_PRESET,
@@ -81,6 +84,7 @@ export class ControlAppMode {
 	private readonly cached: Catalogue | null
 	private readonly keepCatalogue?: (cat: Catalogue) => void
 	private keptHash: string | undefined
+	private readonly openCtx: OpenAppContext
 
 	constructor(
 		private readonly host: ControlHost,
@@ -107,6 +111,13 @@ export class ControlAppMode {
 					})
 				: null
 		this.client = new ControlClient({ host: address, port: port || CONTROL_APPS[app].port, appName: this.name })
+		this.openCtx = {
+			app,
+			running: () => this.client.status === 'ok' || this.client.status === 'not_allowed',
+			catalogue: () => this.catalogue,
+			press: async (control) => this.press(control),
+			log: (level, message) => this.host.log(level, message),
+		}
 		this.client.on('status', (s, message) => {
 			this.host.updateStatus(STATUS[s], message || null)
 			// Talk Light gone means no talk to show — never leave the decks blinking.
@@ -162,13 +173,17 @@ export class ControlAppMode {
 	/** No catalogue yet: the talk flash, which this module owns, and the meta variables. */
 	private defineOwnOnly(): void {
 		const flash = this.flash
-		this.host.setActionDefinitions(flash ? talkFlashActions(flash) : {})
+		this.host.setActionDefinitions({ ...openAppActions(this.openCtx), ...(flash ? talkFlashActions(flash) : {}) })
 		this.host.setFeedbackDefinitions(flash ? talkFlashFeedbacks(flash) : {})
 		this.host.setVariableDefinitions(
 			Object.fromEntries(Object.entries(this.extraVariables()).map(([id, name]) => [id, { name }])),
 		)
-		if (flash) this.host.setPresetDefinitions([TALK_FLASH_SECTION], talkFlashPresets())
-		else this.host.setPresetDefinitions([], {})
+		// The logo key, at least: it is how the app gets started.
+		const look = buildLookPresets(this.app, null, this.host.label, (key) => key)
+		this.host.setPresetDefinitions(flash ? [look.section, TALK_FLASH_SECTION] : [look.section], {
+			...look.presets,
+			...(flash ? talkFlashPresets() : {}),
+		})
 		this.publishFlash()
 	}
 
@@ -189,6 +204,7 @@ export class ControlAppMode {
 		const flash = this.flash
 		this.host.setActionDefinitions({
 			...buildControlActions(cat, async (control, value) => this.press(control, value)),
+			...openAppActions(this.openCtx),
 			...(flash ? talkFlashActions(flash) : {}),
 		})
 		this.host.setFeedbackDefinitions({
@@ -208,6 +224,9 @@ export class ControlAppMode {
 			Object.assign(built.presets, readout.presets)
 			built.sections.push(readout.section)
 		}
+		const look = buildLookPresets(this.app, cat, this.host.label, bareNaming(cat))
+		Object.assign(built.presets, look.presets)
+		built.sections.push(look.section)
 		this.host.setPresetDefinitions(built.sections, built.presets)
 		this.publishFlash()
 		this.host.log(

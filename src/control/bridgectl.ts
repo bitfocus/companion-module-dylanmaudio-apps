@@ -28,6 +28,8 @@ import {
 	feedbackIdsForKey,
 	prefixedNaming,
 } from './definitions.js'
+import { buildLookPresets } from './looks/looks.js'
+import { openAppActions, type OpenAppContext } from './openapp.js'
 import { CONTROL_APPS } from './registry.js'
 import type { Catalogue, CmdValue, StateValue } from './types.js'
 
@@ -55,6 +57,7 @@ export class BridgeAppControl extends EventEmitter<BridgeAppEvents> {
 	/** The last status said in the log, so a retry loop against an old bridge says it once. */
 	private announced: ControlStatus | null = null
 	private lastState = ''
+	private readonly openCtx: OpenAppContext
 
 	constructor(
 		private readonly host: BridgeAppHost,
@@ -75,6 +78,13 @@ export class BridgeAppControl extends EventEmitter<BridgeAppEvents> {
 		this.catalogue = cached?.app === 'bridge' ? cached : null
 		let keptHash = this.catalogue?.hash
 		this.client = new ControlClient({ host: address, port: p, appName: CONTROL_APPS.bridge.name, ...clientOpts })
+		this.openCtx = {
+			app: 'bridge',
+			running: () => this.reporting(),
+			catalogue: () => this.catalogue,
+			press: async (control) => this.press(control),
+			log: (level, message) => this.host.log(level, message),
+		}
 		this.client.on('status', (s, message) => this.onStatus(s, message))
 		this.client.on('log', (level, message) => this.host.log(level, message))
 		this.client.on('catalogue', (cat) => {
@@ -117,7 +127,11 @@ export class BridgeAppControl extends EventEmitter<BridgeAppEvents> {
 	}
 
 	actions(): ReturnType<typeof buildControlActions> {
-		return this.catalogue ? buildControlActions(this.catalogue, async (c, v) => this.press(c, v)) : {}
+		return {
+			...(this.catalogue ? buildControlActions(this.catalogue, async (c, v) => this.press(c, v)) : {}),
+			// Always: starting the bridge app is what this is for when it isn't running.
+			...openAppActions(this.openCtx),
+		}
 	}
 
 	feedbacks(): ReturnType<typeof buildControlFeedbacks> {
@@ -130,9 +144,11 @@ export class BridgeAppControl extends EventEmitter<BridgeAppEvents> {
 	}
 
 	presets(): ReturnType<typeof buildControlPresets> {
-		return this.catalogue
+		const look = buildLookPresets('bridge', this.catalogue, this.host.label, prefixedNaming)
+		const built = this.catalogue
 			? buildControlPresets(this.catalogue, this.host.label, prefixedNaming)
 			: { sections: [], presets: {} }
+		return { sections: [...built.sections, look.section], presets: { ...built.presets, ...look.presets } }
 	}
 
 	private reporting(): boolean {

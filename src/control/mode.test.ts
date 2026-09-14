@@ -181,6 +181,8 @@ describe('while the app is not running', () => {
 		expect(host.actions[TALK_FLASH_EXIT]).toBeDefined()
 		expect(host.feedbacks[TALK_FLASH_FEEDBACK]).toBeDefined()
 		expect(host.presets[TALK_FLASH_PRESET]).toBeDefined()
+		expect(host.actions.open_app).toBeDefined()
+		expect(host.presets.p_tlt__look_logo).toBeDefined()
 		expect(host.vars).toMatchObject({ talk_active: false, talk_flash_armed: true })
 		await host.actions[TALK_FLASH_EXIT]?.callback()
 		expect(host.vars.talk_flash_exited).toBe(true)
@@ -209,7 +211,7 @@ describe('while the app is not running', () => {
 			cachedCatalogue: catalogueOf('tlt.json'),
 		})
 		mode.start()
-		expect(Object.keys(host.actions)).toEqual([])
+		expect(Object.keys(host.actions)).toEqual(['open_app'])
 		mode.stop()
 	})
 })

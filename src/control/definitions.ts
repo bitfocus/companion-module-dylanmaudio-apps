@@ -284,7 +284,7 @@ function valueLabels(cat: Catalogue, key: string): Map<string, string> {
 export type VariableNaming = (key: string) => string
 
 /** The app connections' naming: the connection label already says which app, so `ptt.state` is `$(ptt:state)`. */
-const bareNaming =
+export const bareNaming =
 	(cat: Catalogue): VariableNaming =>
 	(key) =>
 		variableId(cat.app, key)

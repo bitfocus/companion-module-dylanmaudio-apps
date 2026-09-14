@@ -19,21 +19,24 @@ function show(expr: string, timecode: string | undefined): string {
 	return substr(timecode, Number(m[1]), Number(m[2])) || '--'
 }
 
-type Preset = { style: { text: string; textExpression: boolean }; feedbacks: { options: { value: string } }[] }
+type El = { id: string; font?: string; weight?: string; text: string | { value: string; isExpression: boolean } }
+type Preset = { type: string; elements: El[]; feedbacks: { options: { value: string } }[] }
 
 describe('Time Code Tool timecode readout', () => {
 	const r = timecodeReadoutPresets(cat, 'tct')
 	const keys = READOUT_FIELDS.map((f) => r?.presets[`p_tct__readout__${f.id}`] as unknown as Preset)
+	const digits = keys.map((k) => k.elements.find((e) => e.id === 'digits') as El)
+	const texts = digits.map((d) => (d.text as { value: string }).value)
 
-	it('four keys, each a zero-padded field of the one timecode', () => {
-		expect(keys.every((k) => k.style.textExpression)).toBe(true)
-		const texts = keys.map((k) => k.style.text)
+	it('four layered keys: a field label over monospaced, zero-padded digits', () => {
+		expect(keys.every((k) => k.type === 'layered')).toBe(true)
+		expect(keys.map((k) => k.elements.find((e) => e.id === 'field')?.text)).toEqual(['HH', 'MM', 'SS', 'FF'])
+		expect(digits.every((d) => d.font === 'companion-mono' && d.weight === 'bold')).toBe(true)
 		expect(texts.map((e) => show(e, '09:05:00:07'))).toEqual(['09', '05', '00', '07'])
 		expect(texts.map((e) => show(e, '10:00:00;12'))).toEqual(['10', '00', '00', '12'])
 	})
 
 	it('shows -- with no signal, and before the app has answered', () => {
-		const texts = keys.map((k) => k.style.text)
 		expect(texts.map((e) => show(e, fx.initial_state['tct.timecode'] as string))).toEqual(['--', '--', '--', '--'])
 		expect(texts.map((e) => show(e, undefined))).toEqual(['--', '--', '--', '--'])
 	})
