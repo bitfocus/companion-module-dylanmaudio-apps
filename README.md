@@ -65,19 +65,27 @@ Hardware-free end-to-end: `src/e2e.test.ts` spawns
 ## Direct mode is a test harness, not a feature
 
 `ConsoleLink` and `TcpTransport` implement the console protocol over TCP
-directly. **They are not reachable from the connection settings and are
-not a user-facing path.** They exist so the protocol layer can be
-verified end to end against the Virtual dLive without a console
-(`src/e2e.test.ts`), and so real hardware captures can be taken and
-replayed. `transport` remains in the config _type_, defaulted to
-`bridge`; only the tests set it to `direct`.
+directly. **They are not part of the module.** `main.ts` only ever builds
+the MIDI Bridge link, and `tsconfig.build.json` leaves both files out of
+`dist`, so the packaged module can't open a socket to a console. They
+exist so the protocol layer can be verified end to end against the
+Virtual dLive without a console: `src/e2e.test.ts` injects them through
+a subclass of the module. They are also how real hardware captures are
+taken and replayed.
 
 ## Status
 
-v0.1 — bridge mode, full action set, state feedback (mutes, faders,
-names, colours, scene) driven by the bridge's mirror, timed fades via
-the bridge's `fade` op, show-file scene names and named Actions import,
-template presets.
+1.0.0. For dLive, through the bridge:
+
+- the full action set;
+- state feedback (mutes, faders, names, colours, scene) driven by the
+  bridge's mirror;
+- timed fades via the bridge's `fade` op;
+- show-file scene names and named Actions import;
+- template presets.
+
+For the other four apps: actions, feedbacks, variables and presets built
+from each app's control catalogue, plus styled keys and Talk flash.
 
 Known limits: the bridge's API v1 mirror carries no paths for the param
 family (assigns, HPF, preamp, sends), so those feedbacks track only this
