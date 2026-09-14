@@ -279,7 +279,7 @@ export function buildLookPresets(
 				[whenIs('ptt.failback_mode', mode, [set('pill', 'color', lit), set('label', 'color', PALETTE.white)])],
 				press(actionId('ptt.failback_mode'), { value: mode }),
 			)
-		add('auto', pill('auto', 'Automatic', PALETTE.accent))
+		add('auto', pill('auto', 'Auto', PALETTE.accent))
 		add('latch', pill('latch', 'Latch', PALETTE.amber))
 	}
 	if (app === 'ptt' && has('ptt.state')) {

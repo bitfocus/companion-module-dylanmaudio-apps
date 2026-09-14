@@ -28,6 +28,7 @@ import { buildLookPresets } from './looks/looks.js'
 import { openAppActions, type OpenAppContext } from './openapp.js'
 import {
 	TALK_FLASH_FEEDBACK,
+	TALK_FLASH_DECKS,
 	TALK_FLASH_PRESET,
 	TALK_FLASH_VARIABLES,
 	talkFlashActions,
@@ -85,6 +86,8 @@ export class ControlAppMode {
 	private readonly keepCatalogue?: (cat: Catalogue) => void
 	private keptHash: string | undefined
 	private readonly openCtx: OpenAppContext
+	/** Each deck's last page that wasn't the TALK page, from "Talk flash: remember a deck's page" */
+	private readonly returnPages = new Map<number, number>()
 
 	constructor(
 		private readonly host: ControlHost,
@@ -173,7 +176,10 @@ export class ControlAppMode {
 	/** No catalogue yet: the talk flash, which this module owns, and the meta variables. */
 	private defineOwnOnly(): void {
 		const flash = this.flash
-		this.host.setActionDefinitions({ ...openAppActions(this.openCtx), ...(flash ? talkFlashActions(flash) : {}) })
+		this.host.setActionDefinitions({
+			...openAppActions(this.openCtx),
+			...(flash ? talkFlashActions(flash, this.rememberPage) : {}),
+		})
 		this.host.setFeedbackDefinitions(flash ? talkFlashFeedbacks(flash) : {})
 		this.host.setVariableDefinitions(
 			Object.fromEntries(Object.entries(this.extraVariables()).map(([id, name]) => [id, { name }])),
@@ -187,6 +193,18 @@ export class ControlAppMode {
 		this.publishFlash()
 	}
 
+	/**
+	 * A deck's page, as a trigger on its page variable reports it. The TALK page
+	 * itself is ignored, so what is kept is where the deck was before talk took it
+	 * over, and where "Talk end" and EXIT return it: no page history involved.
+	 */
+	private readonly rememberPage = (deck: number, page: number): void => {
+		if (!Number.isInteger(deck) || deck < 1 || deck > TALK_FLASH_DECKS) return
+		if (!Number.isInteger(page) || page < 1 || page === this.talkPage) return
+		this.returnPages.set(deck, page)
+		this.host.setVariableValues({ [`talk_return_${deck}`]: page })
+	}
+
 	private publishFlash(): void {
 		const flash = this.flash
 		if (!flash) return
@@ -196,6 +214,7 @@ export class ControlAppMode {
 			talk_flash_exited: flash.exited,
 			talk_flash_took_over: flash.tookOver,
 			talk_page: this.talkPage,
+			...Object.fromEntries([...this.returnPages].map(([deck, page]) => [`talk_return_${deck}`, page])),
 		})
 	}
 
@@ -205,7 +224,7 @@ export class ControlAppMode {
 		this.host.setActionDefinitions({
 			...buildControlActions(cat, async (control, value) => this.press(control, value)),
 			...openAppActions(this.openCtx),
-			...(flash ? talkFlashActions(flash) : {}),
+			...(flash ? talkFlashActions(flash, this.rememberPage) : {}),
 		})
 		this.host.setFeedbackDefinitions({
 			...buildControlFeedbacks(cat, (key) => this.client.get(key)),

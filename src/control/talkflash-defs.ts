@@ -23,9 +23,20 @@ import type { TalkFlash } from './talkflash.js'
 
 export const TALK_FLASH_FEEDBACK = 'talk_flash'
 export const TALK_FLASH_EXIT = 'talk_flash_exit'
+export const TALK_FLASH_REMEMBER = 'talk_flash_remember'
+/** Decks whose page the module can remember: $(tlt:talk_return_1) … _4 */
+export const TALK_FLASH_DECKS = 4
+
+const RETURN_VARIABLES: Record<string, string> = Object.fromEntries(
+	Array.from({ length: TALK_FLASH_DECKS }, (_, i) => [
+		`talk_return_${i + 1}`,
+		`The page deck ${i + 1} was last on, other than the TALK page — where "Talk end" and EXIT send it`,
+	]),
+)
 export const TALK_FLASH_PRESET = 'p_talk_flash_key'
 
 export const TALK_FLASH_VARIABLES: Record<string, string> = {
+	...RETURN_VARIABLES,
 	talk_active: 'Talk is active (Talk Light Trigger reports talk)',
 	talk_flash_armed: 'A new talk will take the decks over (no EXIT cooldown running)',
 	talk_flash_exited: 'EXIT was pressed during this talk — the deck already went back',
@@ -36,8 +47,45 @@ export const TALK_FLASH_VARIABLES: Record<string, string> = {
 const RED = combineRgb(255, 40, 40)
 const WHITE = combineRgb(255, 255, 255)
 
-export function talkFlashActions(flash: TalkFlash): CompanionActionDefinitions<ActionsSchema> {
+export function talkFlashActions(
+	flash: TalkFlash,
+	remember?: (deck: number, page: number) => void,
+): CompanionActionDefinitions<ActionsSchema> {
 	return {
+		...(remember
+			? {
+					[TALK_FLASH_REMEMBER]: {
+						name: "Talk flash: remember a deck's page",
+						description:
+							'For a trigger on the deck\'s page variable: keeps the last page the deck was on, other than the TALK page, as $(tlt:talk_return_N). "Talk end" and EXIT send the deck back there, without relying on Companion\'s page history.',
+						options: [
+							{
+								type: 'dropdown',
+								id: 'deck',
+								label: 'Deck',
+								default: 1,
+								choices: Array.from({ length: TALK_FLASH_DECKS }, (_, i) => ({ id: i + 1, label: `Deck ${i + 1}` })),
+							},
+							{
+								type: 'textinput',
+								id: 'page',
+								label: "The deck's current page",
+								tooltip:
+									'Its page variable, e.g. $(internal:surface_streamdeck_<serial>_page), found under Variables → internal. Set this field to expression mode.',
+								default: '',
+								useVariables: true,
+							},
+						],
+						callback: async (a) => {
+							const page = a.options.page
+							remember(
+								Number(a.options.deck),
+								typeof page === 'number' ? page : Number(typeof page === 'string' ? page.trim() : NaN),
+							)
+						},
+					},
+				}
+			: {}),
 		[TALK_FLASH_EXIT]: {
 			name: 'Talk flash: exit',
 			description:

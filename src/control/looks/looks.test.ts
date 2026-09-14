@@ -110,6 +110,12 @@ describe('styled keys', () => {
 		expect(names).toEqual(['BRIDGE', 'TALK', 'PILOT', 'TIMECODE'])
 	})
 
+	it("Pilot Tone's failback pills read Auto and Latch", () => {
+		const { presets } = looksFor('ptt')
+		const label = (id: string) => (presets[id].elements as Json[]).find((e) => e.id === 'label')?.text
+		expect([label('p_ptt__look_auto'), label('p_ptt__look_latch')]).toEqual(['Auto', 'Latch'])
+	})
+
 	it('Run fills green and says RUNNING while the app runs', () => {
 		const run = looksFor('tlt').presets.p_tlt__look_run.feedbacks[0] as Json
 		expect(run.feedbackId).toBe('st_tlt__running')

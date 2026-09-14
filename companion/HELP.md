@@ -124,6 +124,22 @@ the two triggers that drive it ship as one file,
   that starts during the cooldown doesn't switch any deck, so an operator
   who dismissed one call isn't pulled straight back by the next.
 
+**Returning to the right page (recommended).** "Back" relies on
+Companion's page history, which doesn't always hold the page a deck
+came from. Seen on a real Stream Deck: talk taken over from page 7
+came back to page 5. For each deck, the module can remember the
+page for you:
+
+1. A trigger on the deck's page variable: event *variable changed*
+   `internal:surface_<id>_page`, with the action **Talk flash: remember a
+   deck's page**. Choose Deck 1, and set the page field to that same
+   variable in expression mode. It keeps the deck's last page that
+   isn't the TALK page, as `$(tlt:talk_return_1)`.
+2. In *Talk flash: talk end*, and in the TALK page's EXIT key, set the
+   page to `$(tlt:talk_return_1)` (expression) instead of *back*.
+
+Decks 2–4 work the same way with `talk_return_2` … `_4`.
+
 **More than one deck.** The triggers act on surface index 0, the first
 deck in Companion's Surfaces list. For each other deck, duplicate both
 triggers and change the surface index. EXIT's "already went back" is

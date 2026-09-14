@@ -93,6 +93,19 @@ describe('a Talk Light Trigger connection', () => {
 		expect(host.vars.talk_flash_exited).toBe(true)
 	})
 
+	it("remembers each deck's last page other than TALK, for Talk end and EXIT", async () => {
+		const remember = (deck: number, page: string) =>
+			host.actions.talk_flash_remember?.callback({ options: { deck, page } } as never)
+		await remember(1, '7')
+		expect(host.vars.talk_return_1).toBe(7)
+		await remember(1, '99') // the TALK page itself: kept as 7
+		await remember(1, '') // no page: ignored
+		await remember(9, '3') // no such deck
+		expect(host.vars.talk_return_1).toBe(7)
+		await remember(2, '5')
+		expect(host.vars.talk_return_2).toBe(5)
+	})
+
 	it('stops flashing when Talk Light goes away mid-talk', async () => {
 		await waitFor(() => mock.requests.some((r) => r.path === '/ctl/v1/stream'), 'stream')
 		mock.publish('tlt.talk', 'active')
