@@ -286,11 +286,21 @@ describe('Pilot Tone Trigger (fixtures/control/ptt.json)', () => {
 		)
 		const vars = Object.keys(buildControlVariables(pc)).filter((k) => !k.startsWith('ctl_'))
 		expect(vars.sort()).toEqual(
-			['failback_mode', 'level_db', 'reset_available', 'running', 'state', 'tone_running'].sort(),
+			['failback_mode', 'level_db', 'reset_available', 'running', 'state', 'threshold_db', 'tone_running'].sort(),
 		)
 		const { presets } = buildControlPresets(pc, 'ptt')
 		expect(Object.keys(presets).sort()).toEqual(
-			['p_ptt__failback_mode__auto', 'p_ptt__failback_mode__latch', 'p_ptt__reset', 'p_ptt__run', 'p_ptt__tone'].sort(),
+			[
+				'p_ptt__failback_mode__auto',
+				'p_ptt__failback_mode__latch',
+				'p_ptt__reset',
+				'p_ptt__run',
+				'p_ptt__show',
+				'p_ptt__threshold__down',
+				'p_ptt__threshold__show',
+				'p_ptt__threshold__up',
+				'p_ptt__tone',
+			].sort(),
 		)
 	})
 })
@@ -380,9 +390,8 @@ describe('Console Control (fixtures/control/cxc.json)', () => {
 	it('each control puts on the wire exactly what the fixture pins', async () => {
 		expect(await pressIn(cc, 'ctl_cxc__play', {})).toEqual(wireIn(cf, 'cmd.play'))
 		expect(await pressIn(cc, 'ctl_cxc__locate', { value: '00:10:00:00' })).toEqual(wireIn(cf, 'cmd.locate'))
-		// the fixture's case "cmd.go-to-marker" sends go-to-region
 		expect(await pressIn(cc, 'ctl_cxc__go-to-region', { mode: 'set', value: 2 })).toEqual(
-			wireIn(cf, 'cmd.go-to-marker'),
+			wireIn(cf, 'cmd.go-to-region'),
 		)
 		expect(await pressIn(cc, 'ctl_cxc__go-to-marker', { mode: 'set', value: 9 })).toEqual(
 			wireIn(cf, 'cmd.refused_by_the_app'),
@@ -393,7 +402,7 @@ describe('Console Control (fixtures/control/cxc.json)', () => {
 
 	it('keeps the command names, hyphens and all, in the action ids', () => {
 		const ids = Object.keys(buildControlActions(cc, async () => undefined))
-		expect(ids).toHaveLength(16)
+		expect(ids).toHaveLength(53)
 		expect(ids).toEqual(
 			expect.arrayContaining(['ctl_cxc__go-to-start', 'ctl_cxc__toggle-show-mode', 'ctl_cxc__go-to-marker']),
 		)

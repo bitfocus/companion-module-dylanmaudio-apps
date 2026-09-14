@@ -57,6 +57,7 @@ describe('MIDI Bridge app control inside the MIDI Bridge connection', () => {
 			'ctl_bridge__autoreconnect',
 			'ctl_bridge__restart',
 			'ctl_bridge__run',
+			'ctl_bridge__show',
 			'open_app',
 		])
 		expect(Object.keys(app!.variables())).toEqual(

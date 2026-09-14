@@ -111,6 +111,11 @@
             "30"
           ]
         ]
+      },
+      {
+        "id": "tct.show",
+        "label": "Show window",
+        "kind": "action"
       }
     ],
     "state": [

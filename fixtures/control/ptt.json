@@ -2,79 +2,336 @@
   "schema": "dylanmaudio-control-fixtures/1",
   "source": "docs/brief-companion-control.md §4.3; server apps/pilot-tone-trigger/webview_app.py",
   "note": "Pilot Tone Trigger's real Companion control catalogue, same replay contract as fixtures/control/exchanges.json. apps/pilot-tone-trigger/tests/test_control_catalogue.py asserts the live ControlServer's catalogue equals 'catalogue' below verbatim, and that every control's handler method exists in ui/bridge-shim.js's METHOD_NAMES.",
-  "app": {"id": "ptt", "name": "Pilot Tone Trigger", "version": "<str>"},
+  "app": {
+    "id": "ptt",
+    "name": "Pilot Tone Trigger",
+    "version": "<str>"
+  },
   "catalogue": {
     "controls": [
-      {"id": "ptt.run", "label": "Run", "kind": "toggle", "state": "ptt.running",
-       "safety": {"off": "critical"}},
-      {"id": "ptt.failback_mode", "label": "Failback mode", "kind": "choice",
-       "state": "ptt.failback_mode",
-       "choices": [["auto", "Automatic"], ["latch", "Latch until Reset"]],
-       "safety": "critical"},
-      {"id": "ptt.reset", "label": "Reset — fail back to primary", "kind": "action",
-       "enabled_when": "ptt.reset_available"},
-      {"id": "ptt.tone", "label": "Tone generator", "kind": "toggle",
-       "state": "ptt.tone_running"}
+      {
+        "id": "ptt.run",
+        "label": "Run",
+        "kind": "toggle",
+        "state": "ptt.running",
+        "safety": {
+          "off": "critical"
+        }
+      },
+      {
+        "id": "ptt.failback_mode",
+        "label": "Failback mode",
+        "kind": "choice",
+        "state": "ptt.failback_mode",
+        "choices": [
+          [
+            "auto",
+            "Automatic"
+          ],
+          [
+            "latch",
+            "Latch until Reset"
+          ]
+        ],
+        "safety": "critical"
+      },
+      {
+        "id": "ptt.reset",
+        "label": "Reset — fail back to primary",
+        "kind": "action",
+        "enabled_when": "ptt.reset_available"
+      },
+      {
+        "id": "ptt.tone",
+        "label": "Tone generator",
+        "kind": "toggle",
+        "state": "ptt.tone_running"
+      },
+      {
+        "id": "ptt.threshold",
+        "label": "Threshold",
+        "kind": "number",
+        "state": "ptt.threshold_db",
+        "min": -60.0,
+        "max": 0.0,
+        "step": 0.5
+      },
+      {
+        "id": "ptt.show",
+        "label": "Show window",
+        "kind": "action"
+      }
     ],
     "state": [
-      {"key": "ptt.running", "label": "Running", "type": "bool"},
-      {"key": "ptt.state", "label": "State", "type": "enum",
-       "values": ["stopped", "ok", "lost", "latched"]},
-      {"key": "ptt.failback_mode", "label": "Failback mode", "type": "enum",
-       "values": ["auto", "latch"]},
-      {"key": "ptt.reset_available", "label": "Reset available", "type": "bool"},
-      {"key": "ptt.tone_running", "label": "Tone running", "type": "bool"},
-      {"key": "ptt.level_db", "label": "Level", "type": "number", "unit": "dB", "max_rate_hz": 10}
+      {
+        "key": "ptt.running",
+        "label": "Running",
+        "type": "bool"
+      },
+      {
+        "key": "ptt.state",
+        "label": "State",
+        "type": "enum",
+        "values": [
+          "stopped",
+          "ok",
+          "lost",
+          "latched"
+        ]
+      },
+      {
+        "key": "ptt.failback_mode",
+        "label": "Failback mode",
+        "type": "enum",
+        "values": [
+          "auto",
+          "latch"
+        ]
+      },
+      {
+        "key": "ptt.reset_available",
+        "label": "Reset available",
+        "type": "bool"
+      },
+      {
+        "key": "ptt.tone_running",
+        "label": "Tone running",
+        "type": "bool"
+      },
+      {
+        "key": "ptt.level_db",
+        "label": "Level",
+        "type": "number",
+        "unit": "dB",
+        "max_rate_hz": 10
+      },
+      {
+        "key": "ptt.threshold_db",
+        "label": "Threshold",
+        "type": "number",
+        "unit": "dB"
+      }
     ]
   },
   "initial_state": {
-    "ptt.running": false, "ptt.state": "stopped", "ptt.failback_mode": "auto",
-    "ptt.reset_available": false, "ptt.tone_running": false, "ptt.level_db": null
+    "ptt.running": false,
+    "ptt.state": "stopped",
+    "ptt.failback_mode": "auto",
+    "ptt.reset_available": false,
+    "ptt.tone_running": false,
+    "ptt.level_db": null,
+    "ptt.threshold_db": -45.0
   },
-  "refusals": {"ptt.reset": "Signal is still below threshold — stay on backup."},
+  "refusals": {
+    "ptt.reset": "Signal is still below threshold — stay on backup."
+  },
   "cases": [
-    {"id": "info.ok",
-     "request": {"method": "GET", "path": "/ctl/v1/info"},
-     "response": {"status": 200, "body": {"v": 1, "ctl": 1, "app": "ptt", "name": "Pilot Tone Trigger",
-       "version": "<str>", "catalogue_hash": "<str>", "allowed": true, "locked": false, "seq": "<int>"}}},
-    {"id": "state.ok",
-     "request": {"method": "GET", "path": "/ctl/v1/state"},
-     "response": {"status": 200, "body": {"v": 1, "seq": "<int>", "values": {
-       "ptt.running": false, "ptt.state": "stopped", "ptt.failback_mode": "auto",
-       "ptt.reset_available": false, "ptt.tone_running": false, "ptt.level_db": null}}}},
-    {"id": "cmd.run.on",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k1", "control": "ptt.run", "value": "on"}},
-     "response": {"status": 200, "body": {"v": 1, "ok": true, "cid": "k1", "control": "ptt.run", "value": true}},
-     "calls": [["ptt.run", true]]},
-    {"id": "cmd.failback_mode.next",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k2", "control": "ptt.failback_mode", "value": "next"}},
-     "response": {"status": 200, "body": {"ok": true, "cid": "k2", "value": "latch"}},
-     "calls": [["ptt.failback_mode", "latch"]]},
-    {"id": "cmd.reset.noop_when_stopped",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k3", "control": "ptt.reset"}},
-     "response": {"status": 200, "body": {"v": 1, "ok": true, "cid": "k3",
-       "control": "ptt.reset", "value": null}},
-     "calls": [["ptt.reset", null]]},
-    {"id": "cmd.tone.toggle",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k4", "control": "ptt.tone", "value": "toggle"}},
-     "response": {"status": 200, "body": {"v": 1, "ok": true, "cid": "k4",
-       "control": "ptt.tone", "value": true}},
-     "calls": [["ptt.tone", true]],
-     "note": "initial_state has ptt.tone_running false, so toggle resolves to on. Corrected 13 Sept: the case first expected 400 bad_value, which toggle answers only while the state is unknown."},
-    {"id": "cmd.failback_mode.locked",
-     "setup": {"locked": true},
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k5", "control": "ptt.failback_mode", "value": "auto"}},
-     "response": {"status": 423, "body": {"ok": false, "cid": "k5",
-       "error": {"code": "locked", "message": "<str>"}}}},
-    {"id": "cmd.unknown_control",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k6", "control": "ptt.nope"}},
-     "response": {"status": 404, "body": {"ok": false, "cid": "k6",
-       "error": {"code": "unknown_control", "message": "<str>"}}}}
+    {
+      "id": "info.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/info"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ctl": 1,
+          "app": "ptt",
+          "name": "Pilot Tone Trigger",
+          "version": "<str>",
+          "catalogue_hash": "<str>",
+          "allowed": true,
+          "locked": false,
+          "seq": "<int>"
+        }
+      }
+    },
+    {
+      "id": "state.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/state"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "seq": "<int>",
+          "values": {
+            "ptt.running": false,
+            "ptt.state": "stopped",
+            "ptt.failback_mode": "auto",
+            "ptt.reset_available": false,
+            "ptt.tone_running": false,
+            "ptt.level_db": null
+          }
+        }
+      }
+    },
+    {
+      "id": "cmd.run.on",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k1",
+          "control": "ptt.run",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k1",
+          "control": "ptt.run",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "ptt.run",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.failback_mode.next",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k2",
+          "control": "ptt.failback_mode",
+          "value": "next"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k2",
+          "value": "latch"
+        }
+      },
+      "calls": [
+        [
+          "ptt.failback_mode",
+          "latch"
+        ]
+      ]
+    },
+    {
+      "id": "cmd.reset.noop_when_stopped",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k3",
+          "control": "ptt.reset"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k3",
+          "control": "ptt.reset",
+          "value": null
+        }
+      },
+      "calls": [
+        [
+          "ptt.reset",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "cmd.tone.toggle",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k4",
+          "control": "ptt.tone",
+          "value": "toggle"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k4",
+          "control": "ptt.tone",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "ptt.tone",
+          true
+        ]
+      ],
+      "note": "initial_state has ptt.tone_running false, so toggle resolves to on. Corrected 13 Sept: the case first expected 400 bad_value, which toggle answers only while the state is unknown."
+    },
+    {
+      "id": "cmd.failback_mode.locked",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k5",
+          "control": "ptt.failback_mode",
+          "value": "auto"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "ok": false,
+          "cid": "k5",
+          "error": {
+            "code": "locked",
+            "message": "<str>"
+          }
+        }
+      }
+    },
+    {
+      "id": "cmd.unknown_control",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k6",
+          "control": "ptt.nope"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "ok": false,
+          "cid": "k6",
+          "error": {
+            "code": "unknown_control",
+            "message": "<str>"
+          }
+        }
+      }
+    }
   ]
 }

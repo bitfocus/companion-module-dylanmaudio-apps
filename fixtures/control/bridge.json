@@ -2,111 +2,481 @@
   "schema": "dylanmaudio-control-fixtures/1",
   "source": "docs/brief-companion-control.md §4.1 (2026-09-11); server apps/midi-bridge/webview_app.py build_control_server",
   "note": "Authority for MIDI Bridge's Companion control catalogue and wire shapes, same rules as fixtures/control/exchanges.json (read that file's header for the replay/matching semantics). This is the bridge SHELL's endpoint on :8770 — start / stop / restart and the menu-bar disc; every dLive function stays on the bridge core's Client API (:8765), which the module's MIDI Bridge connection combines with this one (brief §3). apps/midi-bridge/tests/test_control_catalogue.py asserts the live catalogue equals 'catalogue' EXACTLY, the initial state matches 'initial_state' (\"<str>\" matches any string), and every control's Api method is in ui/bridge-shim.js's METHOD_NAMES. Never edit a case to make a test green — change the brief first, then both sides.",
-  "app": {"id": "bridge", "name": "MIDI Bridge", "version": "<str>"},
+  "app": {
+    "id": "bridge",
+    "name": "MIDI Bridge",
+    "version": "<str>"
+  },
   "catalogue": {
     "controls": [
-      {"id": "bridge.run", "label": "Run", "kind": "toggle", "state": "bridge.running",
-       "safety": {"off": "critical"}},
-      {"id": "bridge.restart", "label": "Restart bridge", "kind": "action", "safety": "critical"},
-      {"id": "bridge.autoreconnect", "label": "Auto-reconnect", "kind": "toggle",
-       "state": "bridge.autoreconnect"}
+      {
+        "id": "bridge.run",
+        "label": "Run",
+        "kind": "toggle",
+        "state": "bridge.running",
+        "safety": {
+          "off": "critical"
+        }
+      },
+      {
+        "id": "bridge.restart",
+        "label": "Restart bridge",
+        "kind": "action",
+        "safety": "critical"
+      },
+      {
+        "id": "bridge.autoreconnect",
+        "label": "Auto-reconnect",
+        "kind": "toggle",
+        "state": "bridge.autoreconnect"
+      },
+      {
+        "id": "bridge.show",
+        "label": "Show window",
+        "kind": "action"
+      }
     ],
     "state": [
-      {"key": "bridge.state", "label": "State", "type": "enum",
-       "values": ["stopped", "not_connected", "connecting", "connected", "error"]},
-      {"key": "bridge.running", "label": "Running", "type": "bool"},
-      {"key": "bridge.activity", "label": "MIDI activity", "type": "bool", "max_rate_hz": 10},
-      {"key": "bridge.error_hint", "label": "Error", "type": "string"},
-      {"key": "bridge.console", "label": "Console", "type": "string"},
-      {"key": "bridge.msg_rate", "label": "Message rate", "type": "number", "unit": "msg/s", "max_rate_hz": 10},
-      {"key": "bridge.autoreconnect", "label": "Auto-reconnect", "type": "bool"},
-      {"key": "bridge.version", "label": "Version", "type": "string"}
+      {
+        "key": "bridge.state",
+        "label": "State",
+        "type": "enum",
+        "values": [
+          "stopped",
+          "not_connected",
+          "connecting",
+          "connected",
+          "error"
+        ]
+      },
+      {
+        "key": "bridge.running",
+        "label": "Running",
+        "type": "bool"
+      },
+      {
+        "key": "bridge.activity",
+        "label": "MIDI activity",
+        "type": "bool",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "bridge.error_hint",
+        "label": "Error",
+        "type": "string"
+      },
+      {
+        "key": "bridge.console",
+        "label": "Console",
+        "type": "string"
+      },
+      {
+        "key": "bridge.msg_rate",
+        "label": "Message rate",
+        "type": "number",
+        "unit": "msg/s",
+        "max_rate_hz": 10.0
+      },
+      {
+        "key": "bridge.autoreconnect",
+        "label": "Auto-reconnect",
+        "type": "bool"
+      },
+      {
+        "key": "bridge.version",
+        "label": "Version",
+        "type": "string"
+      }
     ]
   },
   "initial_state": {
-    "bridge.state": "stopped", "bridge.running": false, "bridge.activity": false,
-    "bridge.error_hint": "", "bridge.console": "192.168.1.10:51325", "bridge.msg_rate": 0,
-    "bridge.autoreconnect": true, "bridge.version": "<str>"
+    "bridge.state": "stopped",
+    "bridge.running": false,
+    "bridge.activity": false,
+    "bridge.error_hint": "",
+    "bridge.console": "192.168.1.10:51325",
+    "bridge.msg_rate": 0.0,
+    "bridge.autoreconnect": true,
+    "bridge.version": "<str>"
   },
   "refusals": {},
   "cases": [
-    {"id": "info.ok",
-     "request": {"method": "GET", "path": "/ctl/v1/info"},
-     "response": {"status": 200, "body": {"v": 1, "ctl": 1, "app": "bridge", "name": "MIDI Bridge",
-       "version": "<str>", "catalogue_hash": "<str>", "allowed": true, "locked": false, "seq": "<int>"}}},
-    {"id": "catalogue.ok",
-     "request": {"method": "GET", "path": "/ctl/v1/catalogue"},
-     "response": {"status": 200, "body": {"v": 1, "app": "bridge", "name": "MIDI Bridge", "hash": "<str>"}}},
-    {"id": "state.ok",
-     "request": {"method": "GET", "path": "/ctl/v1/state"},
-     "response": {"status": 200, "body": {"v": 1, "seq": "<int>", "values": {
-       "bridge.state": "stopped", "bridge.running": false, "bridge.activity": false,
-       "bridge.error_hint": "", "bridge.console": "192.168.1.10:51325", "bridge.msg_rate": 0,
-       "bridge.autoreconnect": true, "bridge.version": "<str>"}}}},
-    {"id": "cmd.run.on",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k1", "control": "bridge.run", "value": "on"}},
-     "response": {"status": 200, "body": {"v": 1, "ok": true, "cid": "k1", "control": "bridge.run", "value": true}},
-     "calls": [["bridge.run", true]]},
-    {"id": "cmd.run.off",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k2", "control": "bridge.run", "value": "off"}},
-     "response": {"status": 200, "body": {"ok": true, "cid": "k2", "value": false}},
-     "calls": [["bridge.run", false]]},
-    {"id": "cmd.restart",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k3", "control": "bridge.restart"}},
-     "response": {"status": 200, "body": {"ok": true, "cid": "k3", "control": "bridge.restart", "value": null}},
-     "calls": [["bridge.restart", null]]},
-    {"id": "cmd.autoreconnect.off",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k4", "control": "bridge.autoreconnect", "value": "off"}},
-     "response": {"status": 200, "body": {"ok": true, "cid": "k4", "value": false}},
-     "calls": [["bridge.autoreconnect", false]]},
-    {"id": "cmd.locked.run_off_refused",
-     "setup": {"locked": true},
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k5", "control": "bridge.run", "value": "off"}},
-     "response": {"status": 423, "body": {"ok": false, "cid": "k5", "error": {"code": "locked"}}},
-     "calls": [],
-     "note": "Only switching the bridge OFF is critical ({\"off\": \"critical\"}): stopping it takes every connected app off the console."},
-    {"id": "cmd.locked.run_on_allowed",
-     "setup": {"locked": true},
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k6", "control": "bridge.run", "value": "on"}},
-     "response": {"status": 200, "body": {"ok": true, "cid": "k6", "value": true}},
-     "calls": [["bridge.run", true]]},
-    {"id": "cmd.locked.restart_refused",
-     "setup": {"locked": true},
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k7", "control": "bridge.restart"}},
-     "response": {"status": 423, "body": {"ok": false, "cid": "k7", "error": {"code": "locked"}}},
-     "calls": []},
-    {"id": "cmd.locked.autoreconnect_allowed",
-     "setup": {"locked": true},
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k8", "control": "bridge.autoreconnect", "value": "on"}},
-     "response": {"status": 200, "body": {"ok": true, "cid": "k8", "value": true}},
-     "calls": [["bridge.autoreconnect", true]]},
-    {"id": "cmd.not_allowed",
-     "setup": {"allowed": false},
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k9", "control": "bridge.run", "value": "on"}},
-     "response": {"status": 403, "body": {"ok": false, "error": {"code": "not_allowed"}}},
-     "calls": []},
-    {"id": "cmd.bad_value",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k10", "control": "bridge.autoreconnect", "value": "maybe"}},
-     "response": {"status": 400, "body": {"ok": false, "error": {"code": "bad_value"}}},
-     "calls": []},
-    {"id": "cmd.unknown_control",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd",
-       "body": {"v": 1, "cid": "k11", "control": "bridge.nope"}},
-     "response": {"status": 404, "body": {"ok": false, "error": {"code": "unknown_control"}}},
-     "calls": []},
-    {"id": "cmd.bad_request",
-     "request": {"method": "POST", "path": "/ctl/v1/cmd", "body": {"v": 1, "cid": "k12"}},
-     "response": {"status": 400, "body": {"ok": false, "error": {"code": "bad_request"}}},
-     "calls": []}
+    {
+      "id": "info.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/info"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ctl": 1,
+          "app": "bridge",
+          "name": "MIDI Bridge",
+          "version": "<str>",
+          "catalogue_hash": "<str>",
+          "allowed": true,
+          "locked": false,
+          "seq": "<int>"
+        }
+      }
+    },
+    {
+      "id": "catalogue.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/catalogue"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "app": "bridge",
+          "name": "MIDI Bridge",
+          "hash": "<str>"
+        }
+      }
+    },
+    {
+      "id": "state.ok",
+      "request": {
+        "method": "GET",
+        "path": "/ctl/v1/state"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "seq": "<int>",
+          "values": {
+            "bridge.state": "stopped",
+            "bridge.running": false,
+            "bridge.activity": false,
+            "bridge.error_hint": "",
+            "bridge.console": "192.168.1.10:51325",
+            "bridge.msg_rate": 0,
+            "bridge.autoreconnect": true,
+            "bridge.version": "<str>"
+          }
+        }
+      }
+    },
+    {
+      "id": "cmd.run.on",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k1",
+          "control": "bridge.run",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k1",
+          "control": "bridge.run",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "bridge.run",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.run.off",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k2",
+          "control": "bridge.run",
+          "value": "off"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k2",
+          "value": false
+        }
+      },
+      "calls": [
+        [
+          "bridge.run",
+          false
+        ]
+      ]
+    },
+    {
+      "id": "cmd.restart",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k3",
+          "control": "bridge.restart"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k3",
+          "control": "bridge.restart",
+          "value": null
+        }
+      },
+      "calls": [
+        [
+          "bridge.restart",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "cmd.autoreconnect.off",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k4",
+          "control": "bridge.autoreconnect",
+          "value": "off"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k4",
+          "value": false
+        }
+      },
+      "calls": [
+        [
+          "bridge.autoreconnect",
+          false
+        ]
+      ]
+    },
+    {
+      "id": "cmd.locked.run_off_refused",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k5",
+          "control": "bridge.run",
+          "value": "off"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "ok": false,
+          "cid": "k5",
+          "error": {
+            "code": "locked"
+          }
+        }
+      },
+      "calls": [],
+      "note": "Only switching the bridge OFF is critical ({\"off\": \"critical\"}): stopping it takes every connected app off the console."
+    },
+    {
+      "id": "cmd.locked.run_on_allowed",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k6",
+          "control": "bridge.run",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k6",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "bridge.run",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.locked.restart_refused",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k7",
+          "control": "bridge.restart"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "ok": false,
+          "cid": "k7",
+          "error": {
+            "code": "locked"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.locked.autoreconnect_allowed",
+      "setup": {
+        "locked": true
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k8",
+          "control": "bridge.autoreconnect",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k8",
+          "value": true
+        }
+      },
+      "calls": [
+        [
+          "bridge.autoreconnect",
+          true
+        ]
+      ]
+    },
+    {
+      "id": "cmd.not_allowed",
+      "setup": {
+        "allowed": false
+      },
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k9",
+          "control": "bridge.run",
+          "value": "on"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "not_allowed"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.bad_value",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k10",
+          "control": "bridge.autoreconnect",
+          "value": "maybe"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "bad_value"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.unknown_control",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k11",
+          "control": "bridge.nope"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "unknown_control"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.bad_request",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k12"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "bad_request"
+          }
+        }
+      },
+      "calls": []
+    }
   ]
 }

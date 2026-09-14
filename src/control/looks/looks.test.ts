@@ -139,11 +139,12 @@ describe('styled keys', () => {
 		expect(presets.p_bridge__look_run).toBeDefined()
 	})
 
-	it("Talk Light's meter marks the threshold; Pilot Tone's has none to mark", () => {
-		const tlt = looksFor('tlt').presets.p_tlt__look_meter.elements as Json[]
-		expect(JSON.stringify(tlt.find((e) => e.id === 'threshold'))).toContain('$(tlt:threshold_db)')
-		const ptt = looksFor('ptt').presets.p_ptt__look_meter.elements as Json[]
-		expect(ptt.find((e) => e.id === 'threshold')).toBeUndefined()
+	it('the Talk Light and Pilot Tone meters mark their thresholds; Time Code has none', () => {
+		const line = (app: AppId) =>
+			(looksFor(app).presets[`p_${app}__look_meter`].elements as Json[]).find((e) => e.id === 'threshold')
+		expect(JSON.stringify(line('tlt'))).toContain('$(tlt:threshold_db)')
+		expect(JSON.stringify(line('ptt'))).toContain('$(ptt:threshold_db)')
+		expect(line('tct')).toBeUndefined()
 	})
 
 	it('with no catalogue there is still the logo, which starts the app', () => {

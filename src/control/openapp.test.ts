@@ -31,15 +31,15 @@ describe('Open <app>', () => {
 	})
 
 	it('asks a running app to show itself, when it offers a show control', async () => {
-		const withShow = { ...tlt(), controls: [...tlt().controls, { id: 'tlt.show', kind: 'action', label: 'Show' }] }
-		const { ctx, calls } = context({ running: () => true, catalogue: () => withShow as Catalogue })
+		const { ctx, calls } = context({ running: () => true, catalogue: tlt })
 		await openApp(ctx)
 		expect(calls.pressed).toEqual(['tlt.show'])
 		expect(calls.launched).toEqual([])
 	})
 
-	it('never starts a running app a second time', async () => {
-		const { ctx, calls } = context({ running: () => true, catalogue: tlt })
+	it('never starts a running app a second time, even one without a show control', async () => {
+		const older = { ...tlt(), controls: tlt().controls.filter((c) => c.id !== 'tlt.show') }
+		const { ctx, calls } = context({ running: () => true, catalogue: () => older })
 		await openApp(ctx)
 		expect(calls.launched).toEqual([])
 		expect(calls.pressed).toEqual([])

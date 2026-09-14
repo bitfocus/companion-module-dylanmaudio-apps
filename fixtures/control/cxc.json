@@ -12,92 +12,342 @@
       {
         "id": "cxc.play",
         "label": "Play",
-        "kind": "action"
+        "kind": "action",
+        "group": "transport"
       },
       {
         "id": "cxc.stop",
         "label": "Stop",
         "kind": "action",
+        "group": "transport",
         "safety": "critical"
       },
       {
         "id": "cxc.go-to-start",
         "label": "Go to Start",
         "kind": "action",
+        "group": "transport",
         "safety": "critical"
       },
       {
         "id": "cxc.record",
         "label": "Record",
         "kind": "action",
+        "group": "transport",
         "safety": "critical"
+      },
+      {
+        "id": "cxc.toggle-mixer",
+        "label": "Show / Hide Mixer",
+        "kind": "action",
+        "group": "view"
+      },
+      {
+        "id": "cxc.toggle-solo",
+        "label": "Solo / Unsolo Track",
+        "kind": "action",
+        "group": "audio"
+      },
+      {
+        "id": "cxc.toggle-arm",
+        "label": "Arm / Disarm Track for Record",
+        "kind": "action",
+        "group": "audio"
       },
       {
         "id": "cxc.locate",
         "label": "Locate",
         "kind": "text",
-        "pattern": "\\d{2}:\\d{2}:\\d{2}[:;]\\d{2}"
+        "pattern": "\\d{2}:\\d{2}:\\d{2}[:;]\\d{2}",
+        "group": "transport"
       },
       {
         "id": "cxc.conform-console",
         "label": "Conform Console Now",
         "kind": "action",
+        "group": "console",
         "safety": "critical"
       },
       {
         "id": "cxc.panic",
         "label": "Panic",
-        "kind": "action"
+        "kind": "action",
+        "group": "console"
       },
       {
         "id": "cxc.toggle-chase",
         "label": "Toggle Chase (global)",
-        "kind": "action"
+        "kind": "action",
+        "group": "console"
+      },
+      {
+        "id": "cxc.toggle-lane-chase",
+        "label": "Toggle Chase (lane)",
+        "kind": "action",
+        "group": "console"
       },
       {
         "id": "cxc.toggle-show-mode",
         "label": "Toggle Show Mode",
         "kind": "action",
+        "group": "mode",
         "safety": "critical"
+      },
+      {
+        "id": "cxc.insert-cue-unity",
+        "label": "Insert Cue: Unity",
+        "kind": "action",
+        "group": "cue"
+      },
+      {
+        "id": "cxc.insert-cue-mute",
+        "label": "Insert Cue: Mute",
+        "kind": "action",
+        "group": "cue"
+      },
+      {
+        "id": "cxc.insert-cue-neg-inf",
+        "label": "Insert Cue: -inf",
+        "kind": "action",
+        "group": "cue"
+      },
+      {
+        "id": "cxc.insert-cue-value",
+        "label": "Insert Cue: Value…",
+        "kind": "text",
+        "pattern": "-?\\d+(\\.\\d+)?|-inf",
+        "group": "cue"
+      },
+      {
+        "id": "cxc.insert-cue-unmute",
+        "label": "Insert Cue: Unmute",
+        "kind": "action",
+        "group": "cue"
+      },
+      {
+        "id": "cxc.insert-cue-scene",
+        "label": "Insert Cue: Scene…",
+        "kind": "number",
+        "min": 1,
+        "max": 500,
+        "step": 1,
+        "group": "cue"
+      },
+      {
+        "id": "cxc.insert-cue-action",
+        "label": "Insert Cue: Action…",
+        "kind": "number",
+        "min": 1,
+        "max": 127,
+        "step": 1,
+        "group": "cue"
       },
       {
         "id": "cxc.next-cue",
         "label": "Jump to Next Cue on Lane",
-        "kind": "action"
+        "kind": "action",
+        "group": "navigate"
       },
       {
         "id": "cxc.prev-cue",
         "label": "Jump to Previous Cue on Lane",
-        "kind": "action"
+        "kind": "action",
+        "group": "navigate"
+      },
+      {
+        "id": "cxc.next-track",
+        "label": "Next Track",
+        "kind": "action",
+        "group": "navigate"
+      },
+      {
+        "id": "cxc.prev-track",
+        "label": "Previous Track",
+        "kind": "action",
+        "group": "navigate"
+      },
+      {
+        "id": "cxc.create-track",
+        "label": "Create Track for Console Object",
+        "kind": "text",
+        "pattern": "[a-z_]+ \\d+",
+        "group": "track"
+      },
+      {
+        "id": "cxc.create-tracks-bulk",
+        "label": "Create Tracks in Bulk",
+        "kind": "text",
+        "pattern": "[a-z_]+ \\d+-\\d+",
+        "group": "track"
+      },
+      {
+        "id": "cxc.preflight",
+        "label": "Preflight Check",
+        "kind": "action",
+        "group": "console"
+      },
+      {
+        "id": "cxc.move-range",
+        "label": "Move Range",
+        "kind": "number",
+        "step": 1,
+        "group": "edit"
+      },
+      {
+        "id": "cxc.copy-range",
+        "label": "Copy Range",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.paste-range",
+        "label": "Paste at Playhead",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.clear-selection",
+        "label": "Clear Time Selection",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.delete-range",
+        "label": "Delete Range",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.nudge-left",
+        "label": "Nudge Left",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.nudge-right",
+        "label": "Nudge Right",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.add-marker",
+        "label": "Add Marker",
+        "kind": "action",
+        "group": "markers"
       },
       {
         "id": "cxc.prev-marker",
         "label": "Previous Marker",
-        "kind": "action"
+        "kind": "action",
+        "group": "markers"
       },
       {
         "id": "cxc.next-marker",
         "label": "Next Marker",
-        "kind": "action"
+        "kind": "action",
+        "group": "markers"
+      },
+      {
+        "id": "cxc.toggle-grid",
+        "label": "Toggle Grid Lines",
+        "kind": "action",
+        "group": "view"
+      },
+      {
+        "id": "cxc.regions-from-audio",
+        "label": "Regions from Audio Clips",
+        "kind": "action",
+        "group": "markers"
+      },
+      {
+        "id": "cxc.add-marker-lane",
+        "label": "Add Marker Lane…",
+        "kind": "text",
+        "pattern": ".{1,64}",
+        "group": "markers"
+      },
+      {
+        "id": "cxc.toggle-marker-lane",
+        "label": "Show / Hide Marker Lane",
+        "kind": "text",
+        "pattern": ".{1,64}",
+        "group": "markers"
+      },
+      {
+        "id": "cxc.toggle-marker-list",
+        "label": "Show / Hide Markers List",
+        "kind": "action",
+        "group": "view"
+      },
+      {
+        "id": "cxc.add-region",
+        "label": "Add Region",
+        "kind": "action",
+        "group": "markers"
       },
       {
         "id": "cxc.go-to-marker",
         "label": "Go to Marker",
         "kind": "number",
         "min": 0,
-        "step": 1
+        "step": 1,
+        "group": "navigate"
       },
       {
         "id": "cxc.go-to-region",
         "label": "Go to Region",
         "kind": "number",
         "min": 0,
-        "step": 1
+        "step": 1,
+        "group": "navigate"
+      },
+      {
+        "id": "cxc.cycle-snap",
+        "label": "Cycle Snap Mode",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.lock-track",
+        "label": "Lock / Unlock Track",
+        "kind": "action",
+        "group": "track"
+      },
+      {
+        "id": "cxc.lock-all-tracks",
+        "label": "Lock All Tracks",
+        "kind": "action",
+        "group": "track"
+      },
+      {
+        "id": "cxc.unlock-all-tracks",
+        "label": "Unlock All Tracks",
+        "kind": "action",
+        "group": "track"
+      },
+      {
+        "id": "cxc.undo",
+        "label": "Undo",
+        "kind": "action",
+        "group": "edit"
+      },
+      {
+        "id": "cxc.redo",
+        "label": "Redo",
+        "kind": "action",
+        "group": "edit"
       },
       {
         "id": "cxc.save",
         "label": "Save",
-        "kind": "action"
+        "kind": "action",
+        "group": "file"
+      },
+      {
+        "id": "cxc.show",
+        "label": "Show window",
+        "kind": "action",
+        "group": "app"
       }
     ],
     "state": [
@@ -331,7 +581,7 @@
       "calls": []
     },
     {
-      "id": "cmd.go-to-marker",
+      "id": "cmd.go-to-region",
       "request": {
         "method": "POST",
         "path": "/ctl/v1/cmd",
@@ -497,7 +747,7 @@
       "calls": []
     },
     {
-      "id": "cmd.editing_is_not_offered",
+      "id": "cmd.insert-cue-unity",
       "request": {
         "method": "POST",
         "path": "/ctl/v1/cmd",
@@ -505,6 +755,112 @@
           "v": 1,
           "cid": "k10",
           "control": "cxc.insert-cue-unity"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "cid": "k10"
+        }
+      },
+      "calls": [
+        [
+          "cxc.insert-cue-unity",
+          null
+        ]
+      ],
+      "note": "Editing verbs are deck keys too (13 Sept); Show Mode gating refuses them while a show is locked, as `refused`."
+    },
+    {
+      "id": "cmd.create-track",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k11",
+          "control": "cxc.create-track",
+          "value": "input 12"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "value": "input 12"
+        }
+      },
+      "calls": [
+        [
+          "cxc.create-track",
+          {
+            "object_type": "input",
+            "number": 12
+          }
+        ]
+      ]
+    },
+    {
+      "id": "cmd.create-track.bad_value",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k12",
+          "control": "cxc.create-track",
+          "value": "twelve"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "ok": false,
+          "error": {
+            "code": "bad_value"
+          }
+        }
+      },
+      "calls": []
+    },
+    {
+      "id": "cmd.insert-cue-value.neg_inf",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k13",
+          "control": "cxc.insert-cue-value",
+          "value": "-inf"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true,
+          "value": "-inf"
+        }
+      },
+      "calls": [
+        [
+          "cxc.insert-cue-value",
+          {
+            "value": "-inf"
+          }
+        ]
+      ]
+    },
+    {
+      "id": "cmd.file_dialogs_are_not_offered",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k14",
+          "control": "cxc.import-audio"
         }
       },
       "response": {
@@ -517,7 +873,7 @@
         }
       },
       "calls": [],
-      "note": "Editing verbs have no remote flag, so they are not controls."
+      "note": "The eight app-only commands (file dialogs, dialog-first, two-argument edits, sync-from-console) are not controls."
     }
   ]
 }
