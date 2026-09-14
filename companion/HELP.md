@@ -81,6 +81,10 @@ here without a new version of this module.
 
   Starting an app uses macOS's `open`, which is why the module asks for
   permission to run programs. A running app is never started twice.
+- **Console Control's presets follow its menus**: a section per
+  category (Transport, Console, Cue, Navigate, Track, Edit, Markers, …),
+  one key per keyboard shortcut. In Show Mode, edits are refused with the
+  app's own "Locked in Show Mode."
 - **Time Code Tool** also has a four-key **timecode readout** preset
   (hours, minutes, seconds, frames). The digits are zero-padded, green
   while locked or generating, amber in freewheel, and `--` without a

@@ -421,6 +421,20 @@ describe('Console Control (fixtures/control/cxc.json)', () => {
 		expect(Object.keys(presets).filter((k) => k.startsWith('p_cxc__go-to-marker'))).toEqual([])
 	})
 
+	it("gives each menu group its own preset section, in the app's order", () => {
+		const { sections, presets } = buildControlPresets(cc, 'cxc')
+		const slug = (id: string) => `p_${id.replace('.', '__')}`
+		const hasPreset = (id: string) => Object.keys(presets).some((k) => k === slug(id) || k.startsWith(`${slug(id)}__`))
+		const groups = [...new Set(cc.controls.filter((c) => hasPreset(c.id)).map((c) => c.group as string))]
+		expect(sections.map((s) => s.name)).toEqual(
+			groups.map((g) => `Console Control: ${g[0].toUpperCase()}${g.slice(1)}`),
+		)
+		expect(sections[0].name).toBe('Console Control: Transport')
+		expect(sections.flatMap((s) => s.definitions as string[]).sort()).toEqual(Object.keys(presets).sort())
+		const transport = sections.find((s) => s.id === 'ctl_cxc__transport')?.definitions as string[]
+		expect(transport).toEqual(expect.arrayContaining(['p_cxc__play', 'p_cxc__stop', 'p_cxc__record']))
+	})
+
 	it('says which commands are show-critical', () => {
 		const a = buildControlActions(cc, async () => undefined)
 		for (const id of ['stop', 'go-to-start', 'record', 'conform-console', 'toggle-show-mode'])

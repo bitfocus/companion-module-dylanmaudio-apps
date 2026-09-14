@@ -332,12 +332,16 @@ export function buildControlPresets(
 	const ids: string[] = []
 	const variable = (key: string) => `$(${label}:${naming(key)})`
 	const style = (text: string) => ({ text, textExpression: false, size: 'auto' as const, color: WHITE, bgcolor: DARK })
+	const groupOf = new Map<string, string>()
+	let group = ''
 	const add = (id: string, p: CompanionPresetDefinitions<ModuleSchema>[string]) => {
 		presets[id] = p
 		ids.push(id)
+		groupOf.set(id, group)
 	}
 
 	for (const c of cat.controls) {
+		group = c.group ?? ''
 		const aid = actionId(c.id)
 		const pid = `p_${slug(c.id)}`
 		switch (c.kind) {
@@ -405,8 +409,18 @@ export function buildControlPresets(
 				break // a value typed per button: no sensible ready-made preset
 		}
 	}
-	const sections: CompanionPresetSection<ModuleSchema>[] = ids.length
-		? [{ id: `ctl_${cat.app}`, name: cat.name, definitions: ids }]
-		: []
+	// Controls that carry a group (Console Control's menu categories) get a
+	// section each, in the catalogue's order, so the presets follow the app's
+	// menus. Ungrouped controls share the app's one section.
+	const byGroup = new Map<string, string[]>()
+	for (const id of ids) {
+		const g = groupOf.get(id) ?? ''
+		byGroup.set(g, [...(byGroup.get(g) ?? []), id])
+	}
+	const sections: CompanionPresetSection<ModuleSchema>[] = [...byGroup].map(([g, definitions]) => ({
+		id: g ? `ctl_${cat.app}__${g.replace(/[^A-Za-z0-9]+/g, '_').toLowerCase()}` : `ctl_${cat.app}`,
+		name: g ? `${cat.name}: ${g.charAt(0).toUpperCase()}${g.slice(1)}` : cat.name,
+		definitions,
+	}))
 	return { sections, presets }
 }
