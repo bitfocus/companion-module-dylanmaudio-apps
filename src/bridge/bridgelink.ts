@@ -25,8 +25,8 @@ import { encode, toHex } from '../protocol/encode.js'
 import { intentSocket, type ConsoleEvent, type Intent } from '../protocol/intents.js'
 import { ConsoleState, CONNECTION_PATH } from '../state/model.js'
 import { SubscriptionRegistry } from '../state/subscriptions.js'
-import type { LinkApi, LinkDiag, LinkEvents, LinkStatus } from '../link-api.js'
-import { localEvent, type SyncScope } from '../link.js'
+import type { LinkApi, LinkDiag, LinkEvents, LinkStatus, SyncScope } from '../link-api.js'
+import { localEvent } from '../protocol/localevent.js'
 
 /** Ops the shipped v1.1 bridge encodes first-class (everything else → raw). */
 const FIRST_CLASS = new Set([

@@ -101,7 +101,7 @@ describe('bridge mode through DliveInstance', () => {
 	it('action → cmd → optimistic state → variables, and the snapshot seeds variables', async () => {
 		const host = new Host()
 		const inst = new DliveInstance(host.context)
-		await inst.init({ ...DEFAULT_CONFIG, transport: 'bridge', bridgeHost: '127.0.0.1', bridgePort: port, inputs: 16 })
+		await inst.init({ ...DEFAULT_CONFIG, bridgeHost: '127.0.0.1', bridgePort: port, inputs: 16 })
 		await waitFor(() => inst.link.isOk, 'ok')
 		await waitFor(() => host.vars['fader_lv_ch7'] === 101, 'snapshot variable')
 		await host.run('fader', { type: 'input', index: 1, db: '+1', fade: 0 })

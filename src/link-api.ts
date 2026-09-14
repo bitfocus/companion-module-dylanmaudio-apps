@@ -3,8 +3,9 @@
  * feedbacks/presets) and "however we reach the console".
  *
  * Two implementations:
- *   ConsoleLink (link.ts)            — direct mode: two TCP sockets, own
- *                                      codec, scheduler, probe, fades.
+ *   ConsoleLink (link.ts)            — the protocol test harness: two TCP
+ *                                      sockets, own codec, scheduler, probe,
+ *                                      fades. Tests only; never built into dist.
  *   BridgeLink  (bridge/bridgelink.ts) — via the MIDI Bridge Client API v1:
  *                                      the bridge owns the socket, mirror
  *                                      and fades; this side
@@ -16,7 +17,7 @@ import type { ChannelRef } from './protocol/channels.js'
 import type { ConsoleEvent, Intent, SocketRole } from './protocol/intents.js'
 import type { ConsoleState } from './state/model.js'
 import type { SubscriptionRegistry } from './state/subscriptions.js'
-import type { SyncScope } from './link.js'
+export type SyncScope = 'names' | 'names_state' | 'all' | 'none'
 
 export type LinkStatus = 'disconnected' | 'connecting' | 'probing' | 'ok' | 'failure'
 

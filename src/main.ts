@@ -17,17 +17,14 @@ import {
 	type ModuleConfig,
 } from './config.js'
 import type { ModuleContext } from './context.js'
-import { ConsoleLink, type LinkStatus } from './link.js'
 import { BridgeLink } from './bridge/bridgelink.js'
-import type { LinkApi } from './link-api.js'
-import { TcpTransport } from './transport/transport.js'
+import type { LinkApi, LinkStatus } from './link-api.js'
 import { buildActions, type ActionsSchema } from './actions.js'
 import { buildFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { buildPresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import {
 	allVariableValues,
-	stripCountsFor,
 	valuesForPaths,
 	variableDefinitions,
 	type MetaValues,
@@ -149,34 +146,17 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 			this.applyConfig(true)
 			return
 		}
-		const modeChanged = prev.transport !== this.config.transport
-		const directChanged =
-			prev.host !== this.config.host ||
-			prev.port !== this.config.port ||
-			prev.surfaceHost !== this.config.surfaceHost ||
-			prev.surfacePort !== this.config.surfacePort ||
-			prev.baseChannel !== this.config.baseChannel
 		const bridgeChanged =
 			prev.bridgeHost !== this.config.bridgeHost ||
 			prev.bridgePort !== this.config.bridgePort ||
 			prev.bridgeToken !== this.config.bridgeToken
-		if (modeChanged || (this.config.transport === 'direct' ? directChanged : bridgeChanged)) {
+		if (bridgeChanged) {
 			this.link.stop()
 			this.link.removeAllListeners()
 			this.link = this.makeLink()
 			this.wireLink()
-		} else if (this.link instanceof ConsoleLink) {
-			Object.assign(this.link.scheduler.opts, {
-				inFlight: this.config.inFlight,
-				pollIntervalMs: this.config.pollIntervalMs,
-			})
-			this.link.opts.syncScope = this.config.syncScope
-			this.link.opts.stripCounts = stripCountsFor({
-				inputs: this.config.inputs,
-				extendedTypes: this.config.extendedTypes,
-			})
 		}
-		if (modeChanged || prev.bridgeHost !== this.config.bridgeHost || prev.bridgeCtlPort !== this.config.bridgeCtlPort)
+		if (prev.bridgeHost !== this.config.bridgeHost || prev.bridgeCtlPort !== this.config.bridgeCtlPort)
 			this.startBridgeApp()
 		this.applyConfig(false)
 	}
@@ -272,10 +252,9 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		this.control.start()
 	}
 
-	/** (Re)start the bridge app's control client — only when the console side goes through the bridge. */
-	private startBridgeApp(): void {
+	/** (Re)start the bridge app's control client (bridgectl.ts). The protocol test harness has no bridge, and turns it off. */
+	protected startBridgeApp(): void {
 		this.stopBridgeApp()
-		if (this.config.transport !== 'bridge') return
 		const app = new BridgeAppControl(this, this.config.bridgeHost, this.config.bridgeCtlPort, {
 			cached: parseCatalogue(this.config.bridgeCtlCatalogue),
 			onCatalogue: (cat) => this.keepCatalogue('bridgeCtlCatalogue', cat),
@@ -330,38 +309,18 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		this.setFeedbackDefinitions({ ...buildFeedbacks(this), ...this.bridgeApp?.feedbacks() })
 	}
 
-	private makeLink(): LinkApi {
-		if (this.config.transport === 'bridge') {
-			return new BridgeLink({
-				host: this.config.bridgeHost,
-				port: this.config.bridgePort,
-				token: this.config.bridgeToken || undefined,
-				laneName: this.label,
-				baseChannel: this.config.baseChannel,
-			})
-		}
-		return new ConsoleLink(this.makeTransport(), this.linkOptions())
-	}
-
-	private makeTransport(): TcpTransport {
-		return new TcpTransport({
-			host: this.config.host,
-			port: this.config.port,
-			surfaceHost: this.config.surfaceHost || undefined,
-			surfacePort: this.config.surfacePort,
-		})
-	}
-
-	private linkOptions() {
-		return {
+	/**
+	 * The console link: always the MIDI Bridge. This module never connects to a
+	 * console itself; only the protocol test harness overrides this (src/e2e.test.ts).
+	 */
+	protected makeLink(): LinkApi {
+		return new BridgeLink({
+			host: this.config.bridgeHost,
+			port: this.config.bridgePort,
+			token: this.config.bridgeToken || undefined,
+			laneName: this.label,
 			baseChannel: this.config.baseChannel,
-			syncScope: this.config.syncScope,
-			stripCounts: stripCountsFor({ inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }),
-			scheduler: {
-				inFlight: this.config.inFlight,
-				pollIntervalMs: this.config.pollIntervalMs,
-			},
-		}
+		})
 	}
 
 	private wireLink(): void {
@@ -384,7 +343,7 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		this.defineActions()
 		this.defineFeedbacks()
 		void this.reloadShowFile().then(() => this.publishDefinitions())
-		if (this.config.transport === 'bridge' && !this.config.bridgeHost) {
+		if (!this.config.bridgeHost) {
 			this.updateStatus(
 				InstanceStatus.BadConfig,
 				'Enter the MIDI Bridge address (127.0.0.1 if it runs on this machine)',

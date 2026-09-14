@@ -1,6 +1,6 @@
 import type { SomeCompanionConfigField } from '@companion-module/base'
 import type { PreampGainRange } from './protocol/levels.js'
-import type { SyncScope } from './link.js'
+import type { SyncScope } from './link-api.js'
 import { describeImport, readImport } from './showfile/upload.js'
 import { APP_IDS, CONTROL_APPS, isAppId, type AppId } from './control/registry.js'
 import {
@@ -32,13 +32,6 @@ export type ModuleConfig = {
 	talkFlashCooldownS: number
 	/** Talk Light only: the page the TALK page was imported to, 0 = off — the triggers read it as $(tlt:talk_page) */
 	talkFlashPage: number
-	/**
-	 * NOT surfaced in the connection UI — this module is bridge-only.
-	 * Direct mode survives solely as the protocol test harness: it is what
-	 * `src/e2e.test.ts` drives against the Virtual dLive, and what the
-	 * hardware capture work uses. Users have no way to select it.
-	 */
-	transport: 'direct' | 'bridge'
 	bridgeHost: string
 	bridgePort: number
 	/** The bridge app's own /ctl/v1 endpoint, on bridgeHost. 0 = its standard 8770 */
@@ -47,10 +40,6 @@ export type ModuleConfig = {
 	ctlCatalogue: string
 	bridgeCtlCatalogue: string
 	bridgeToken: string
-	host: string
-	port: number
-	surfaceHost: string
-	surfacePort: number
 	baseChannel: number
 	firmware: string
 	syncScope: SyncScope
@@ -73,8 +62,6 @@ export type ModuleConfig = {
 	sceneNames: string
 	sendsInDb: boolean
 	preampGainRange: PreampGainRange
-	inFlight: number
-	pollIntervalMs: number
 	debugEvents: boolean
 }
 
@@ -85,17 +72,12 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	talkFlashHz: TALK_FLASH_DEFAULT_HZ,
 	talkFlashCooldownS: TALK_FLASH_DEFAULT_COOLDOWN_S,
 	talkFlashPage: TALK_FLASH_DEFAULT_PAGE,
-	transport: 'bridge',
 	bridgeHost: '127.0.0.1',
 	bridgePort: 8765,
 	bridgeCtlPort: 0,
 	ctlCatalogue: '',
 	bridgeCtlCatalogue: '',
 	bridgeToken: '',
-	host: '',
-	port: 51325,
-	surfaceHost: '',
-	surfacePort: 51328,
 	baseChannel: 12,
 	firmware: '',
 	syncScope: 'names_state',
@@ -113,14 +95,11 @@ export const DEFAULT_CONFIG: ModuleConfig = {
 	sceneNames: '',
 	sendsInDb: true,
 	preampGainRange: 'spec',
-	inFlight: 8,
-	pollIntervalMs: 50,
 	debugEvents: false,
 }
 
 export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): ModuleConfig {
 	const c = { ...DEFAULT_CONFIG, ...(raw ?? {}) }
-	if (c.transport !== 'direct') c.transport = 'bridge'
 	if (!isAppId(c.app)) c.app = 'bridge'
 	if (!c.ctlHost) c.ctlHost = '127.0.0.1'
 	c.ctlPort = clampInt(c.ctlPort, 0, 65535, 0)
@@ -132,12 +111,8 @@ export function normaliseConfig(raw: Partial<ModuleConfig> | null | undefined): 
 	c.bridgeCtlPort = clampInt(c.bridgeCtlPort, 0, 65535, 0)
 	if (typeof c.ctlCatalogue !== 'string') c.ctlCatalogue = ''
 	if (typeof c.bridgeCtlCatalogue !== 'string') c.bridgeCtlCatalogue = ''
-	c.port = clampInt(c.port, 1, 65535, 51325)
-	c.surfacePort = clampInt(c.surfacePort, 1, 65535, 51328)
 	c.baseChannel = clampInt(c.baseChannel, 1, 12, 12)
 	c.inputs = clampInt(c.inputs, 1, 128, 128)
-	c.inFlight = clampInt(c.inFlight, 1, 32, 8)
-	c.pollIntervalMs = clampInt(c.pollIntervalMs, 10, 2000, 50)
 	for (const k of ['goCc', 'goValue', 'nextCc', 'nextValue', 'prevCc', 'prevValue'] as const)
 		c[k] = clampInt(c[k], 0, 127, 0)
 	if (c.preampGainRange !== 'spec' && c.preampGainRange !== 'legacy') c.preampGainRange = 'spec'

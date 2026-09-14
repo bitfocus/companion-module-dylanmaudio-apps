@@ -16,9 +16,37 @@ import type {
 } from '@companion-module/base'
 import DliveInstance from './main.js'
 import { DEFAULT_CONFIG } from './config.js'
+import { ConsoleLink } from './link.js'
+import type { LinkApi } from './link-api.js'
+import { TcpTransport } from './transport/transport.js'
+import { stripCountsFor } from './variables.js'
 
 const SIM_ROOT = process.env.DLIVE_SIM_ROOT ?? join(homedir(), 'Documents', 'GitHub', 'dLive Utility Apps')
 const HAVE_SIM = existsSync(join(SIM_ROOT, 'sim', 'virtual_console.py'))
+
+/**
+ * The module with its console link swapped for the direct protocol harness,
+ * because the Virtual dLive has no MIDI Bridge in front of it. The module
+ * itself only ever talks to the bridge.
+ */
+class HarnessInstance extends DliveInstance {
+	readonly #port: number
+	constructor(internal: unknown, port: number) {
+		super(internal)
+		this.#port = port
+	}
+	protected override makeLink(): LinkApi {
+		return new ConsoleLink(new TcpTransport({ host: '127.0.0.1', port: this.#port, surfacePort: 51328 }), {
+			baseChannel: this.config.baseChannel,
+			syncScope: this.config.syncScope,
+			stripCounts: stripCountsFor({ inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }),
+			scheduler: { inFlight: 8, pollIntervalMs: 50 },
+		})
+	}
+	protected override startBridgeApp(): void {
+		// no MIDI Bridge behind the Virtual dLive
+	}
+}
 
 // ---------------------------------------------------------------- fake host
 
@@ -201,13 +229,9 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 
 	beforeAll(async () => {
 		await sim.start(1)
-		inst = new DliveInstance(host.context)
+		inst = new HarnessInstance(host.context, sim.port)
 		await inst.init({
 			...DEFAULT_CONFIG,
-			// direct mode is not user-selectable; it exists for this harness
-			transport: 'direct',
-			host: '127.0.0.1',
-			port: sim.port,
 			baseChannel: 1,
 			inputs: 8,
 			extendedTypes: false,
@@ -351,12 +375,9 @@ describe.skipIf(!HAVE_SIM)('end-to-end against the Virtual dLive', () => {
 		// port: connect will fail, so status must never reach 'ok'.
 		const deadPort = await closedPort()
 		const h2 = new FakeHost()
-		const i2 = new DliveInstance(h2.context)
+		const i2 = new HarnessInstance(h2.context, deadPort)
 		await i2.init({
 			...DEFAULT_CONFIG,
-			transport: 'direct',
-			host: '127.0.0.1',
-			port: deadPort,
 			baseChannel: 1,
 			inputs: 4,
 			extendedTypes: false,
