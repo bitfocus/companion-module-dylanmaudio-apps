@@ -102,6 +102,14 @@ describe('styled keys', () => {
 		expect(PALETTE.amber).toBe(0xe8a94a)
 	})
 
+	it('each Run key says whose it is, in words', () => {
+		const names = (['bridge', 'tlt', 'ptt', 'tct'] as AppId[]).map((app) => {
+			const run = looksFor(app).presets[`p_${app}__look_run`]
+			return (run.elements as Json[]).find((e) => e.id === 'name')?.text
+		})
+		expect(names).toEqual(['BRIDGE', 'TALK', 'PILOT', 'TIMECODE'])
+	})
+
 	it('Run fills green and says RUNNING while the app runs', () => {
 		const run = looksFor('tlt').presets.p_tlt__look_run.feedbacks[0] as Json
 		expect(run.feedbackId).toBe('st_tlt__running')

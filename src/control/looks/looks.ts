@@ -103,6 +103,15 @@ const SHORT_NAME: Record<AppId, string> = {
 	cxc: 'Console Control',
 }
 
+/** The app's name across the top of its Run key: the logo alone is too small to tell apart on a deck. */
+const RUN_NAME: Record<AppId, string> = {
+	bridge: 'BRIDGE',
+	tlt: 'TALK',
+	ptt: 'PILOT',
+	tct: 'TIMECODE',
+	cxc: 'CONSOLE',
+}
+
 /** The state each menu-bar icon follows, and the values it has a picture for. */
 const MENUBAR_STATE: Partial<Record<AppId, string>> = {
 	bridge: 'bridge.state',
@@ -169,24 +178,25 @@ export function buildLookPresets(
 		)
 	}
 
-	// Run: a ring that fills green while the app runs.
+	// Run: the app's name over a ring that fills green, and says RUNNING, while the app runs.
 	if (control(`${app}.run`) && has(`${app}.running`)) {
+		const ring = { x: 18, y: 30, w: 64, h: 64 }
 		add(
 			'run',
 			layered(
 				`${SHORT_NAME[app]}: Run`,
 				[
 					box('bg', PALETTE.window),
+					text('name', RUN_NAME[app], { x: 0, y: 2, w: 100, h: 26 }, { weight: 'bold' }),
 					{
 						type: 'circle',
 						id: 'ring',
-						...at({ x: 20, y: 20, w: 72, h: 72 }),
+						...at(ring),
 						color: PALETTE.control,
 						borderWidth: 4,
 						borderColor: PALETTE.textMuted,
 					},
-					text('label', 'RUN', { x: 20, y: 20, w: 72, h: 72 }, { fontsize: 42, weight: 'bold' }),
-					image('logo', APP_LOGOS[app], { x: 2, y: 2, w: 26, h: 26 }),
+					text('label', 'RUN', ring, { fontsize: 40, weight: 'bold' }),
 				],
 				[
 					whenOn(`${app}.running`, [
