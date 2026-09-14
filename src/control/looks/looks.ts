@@ -1,116 +1,46 @@
 /**
  * Styled keys for each app, as Companion 5 layered presets: the app's logo
  * and its menu-bar icon (both open the app), a round Run button, a level
- * meter, and Pilot Tone's failback pills and status tile in the app's own
- * colours.
+ * meter, Pilot Tone's failback pills and status tile in the app's own
+ * colours, and Console Control's status tiles.
  *
  * Built from the app's catalogue like everything else: a preset appears only
  * when the controls and state it uses are there. Coordinates are percent of
  * the key. Images come from images.ts (tools/app-images.py).
  */
 
-import type { CompanionPresetDefinitions, CompanionPresetSection } from '@companion-module/base'
+import type { CompanionPresetSection } from '@companion-module/base'
 import type { ModuleSchema } from '../../main.js'
 import { actionId, boolFeedbackId, enumFeedbackId, type VariableNaming } from '../definitions.js'
 import { OPEN_APP_ACTION } from '../openapp.js'
 import type { AppId } from '../registry.js'
 import type { Catalogue } from '../types.js'
 import { APP_LOGOS, MENUBAR_ICONS } from './images.js'
-import { METER, PALETTE, PTT_TILE } from './palette.js'
+import { APP_NAME, RUN_NAME } from './labels.js'
+import {
+	at,
+	box,
+	CAPTION,
+	expr,
+	feedback,
+	fitSize,
+	FULL,
+	image,
+	layered,
+	press,
+	set,
+	text,
+	VALUE,
+	type Json,
+	type Override,
+	type Preset,
+	type Presets,
+} from './layers.js'
+import { KEY, METER, PALETTE, PTT_TILE } from './palette.js'
 
-type Presets = CompanionPresetDefinitions<ModuleSchema>
-type Preset = NonNullable<Presets[string]>
-type Json = Record<string, unknown>
-interface Bounds {
-	x: number
-	y: number
-	w: number
-	h: number
-}
-
-const FULL: Bounds = { x: 0, y: 0, w: 100, h: 100 }
-const expr = (value: string): { value: string; isExpression: true } => ({ value, isExpression: true })
-const at = (b: Bounds): Json => ({ x: b.x, y: b.y, width: b.w, height: b.h })
-
-const box = (id: string, color: number, b: Bounds = FULL, more: Json = {}): Json => ({
-	type: 'box',
-	id,
-	...at(b),
-	color,
-	...more,
-})
-const image = (id: string, base64: string, b: Bounds): Json => ({
-	type: 'image',
-	id,
-	...at(b),
-	base64Image: base64,
-	fillMode: 'fit',
-	halign: 'center',
-	valign: 'center',
-})
-function text(id: string, value: string | { value: string; isExpression: true }, b: Bounds, o: Json = {}): Json {
-	return {
-		type: 'text',
-		id,
-		...at(b),
-		text: value,
-		fontsize: 100,
-		fontsizeAllowShrink: true,
-		font: 'companion-sans',
-		color: PALETTE.textSecondary,
-		halign: 'center',
-		valign: 'center',
-		...o,
-	}
-}
-
-interface Override {
-	elementId: string
-	elementProperty: string
-	override: unknown
-}
-/**
- * Companion 5.0.5 keeps a preset feedback's override only when it is wrapped
- * as { value, isExpression } — a plain value, though the module API's types
- * allow it, is filtered out, and a feedback left with no overrides is dropped.
- */
-const set = (elementId: string, elementProperty: string, value: unknown): Override => ({
-	elementId,
-	elementProperty,
-	override: { value, isExpression: false },
-})
-const whenIs = (key: string, value: string, overrides: Override[]): Json => ({
-	feedbackId: enumFeedbackId(key),
-	options: { value },
-	styleOverrides: overrides,
-})
-const whenOn = (key: string, overrides: Override[]): Json => ({
-	feedbackId: boolFeedbackId(key),
-	options: {},
-	styleOverrides: overrides,
-})
-const press = (id: string, options: Json = {}): Json[] => [{ down: [{ actionId: id, options }], up: [] }]
-
-function layered(name: string, elements: Json[], feedbacks: Json[], steps: Json[]): Preset {
-	return { type: 'layered', name, elements, feedbacks, steps } as unknown as Preset
-}
-
-const SHORT_NAME: Record<AppId, string> = {
-	bridge: 'MIDI Bridge',
-	tlt: 'Talk Light',
-	ptt: 'Pilot Tone',
-	tct: 'Time Code',
-	cxc: 'Console Control',
-}
-
-/** The app's name across the top of its Run key: the logo alone is too small to tell apart on a deck. */
-const RUN_NAME: Record<AppId, string> = {
-	bridge: 'BRIDGE',
-	tlt: 'TALK',
-	ptt: 'PILOT',
-	tct: 'TIMECODE',
-	cxc: 'CONSOLE',
-}
+const whenIs = (key: string, value: string, overrides: Override[]): Json =>
+	feedback(enumFeedbackId(key), { value }, overrides)
+const whenOn = (key: string, overrides: Override[]): Json => feedback(boolFeedbackId(key), {}, overrides)
 
 /** The state each menu-bar icon follows, and the values it has a picture for. */
 const MENUBAR_STATE: Partial<Record<AppId, string>> = {
@@ -143,11 +73,11 @@ export function buildLookPresets(
 	add(
 		'logo',
 		layered(
-			`${SHORT_NAME[app]} logo (opens the app)`,
+			`${APP_NAME[app]} logo (opens the app)`,
 			[
 				box('bg', PALETTE.window),
 				image('logo', APP_LOGOS[app], { x: 12, y: 4, w: 76, h: 70 }),
-				text('name', SHORT_NAME[app], { x: 0, y: 76, w: 100, h: 22 }),
+				text('name', APP_NAME[app], { x: 0, y: 76, w: 100, h: 22 }),
 			],
 			[],
 			openApp,
@@ -166,7 +96,7 @@ export function buildLookPresets(
 		add(
 			'menubar',
 			layered(
-				`${SHORT_NAME[app]} menu-bar icon (opens the app)`,
+				`${APP_NAME[app]} menu-bar icon (opens the app)`,
 				[
 					box('bg', PALETTE.window),
 					image('icon', icons.stopped, { x: 12, y: 4, w: 76, h: 60 }),
@@ -184,7 +114,7 @@ export function buildLookPresets(
 		add(
 			'run',
 			layered(
-				`${SHORT_NAME[app]}: Run`,
+				`${APP_NAME[app]}: Run`,
 				[
 					box('bg', PALETTE.window),
 					text('name', RUN_NAME[app], { x: 0, y: 2, w: 100, h: 26 }, { weight: 'bold' }),
@@ -263,7 +193,7 @@ export function buildLookPresets(
 			: []
 		add(
 			'meter',
-			layered(`${SHORT_NAME[app]}: ${(METER_TITLE[app] ?? 'level').toLowerCase()} level`, elements, feedbacks, []),
+			layered(`${APP_NAME[app]}: ${(METER_TITLE[app] ?? 'level').toLowerCase()} level`, elements, feedbacks, []),
 		)
 	}
 
@@ -312,10 +242,56 @@ export function buildLookPresets(
 		)
 	}
 
+	// Console Control: its status bar as tiles — timecode, transport, mode and output.
+	if (app === 'cxc') {
+		if (has('cxc.timecode')) {
+			const tc = variable('cxc.timecode')
+			add(
+				'timecode',
+				layered(
+					'Console Control: timecode',
+					[
+						box('bg', KEY.tile),
+						// HH:MM over SS:FF, so the digits can be big
+						text('tc', expr(`concat(substr(${tc}, 0, 5), '\\n', substr(${tc}, 6))`), FULL, {
+							font: 'companion-mono',
+							fontsize: 36,
+							color: PALETTE.white,
+						}),
+					],
+					[],
+					[],
+				),
+			)
+		}
+		const status = (key: string, caption: string, colours: Record<string, number>): void => {
+			if (!has(key)) return
+			add(
+				key.slice('cxc.'.length),
+				layered(
+					`Console Control: ${caption.toLowerCase()}`,
+					[
+						box('bg', KEY.tile),
+						text('caption', caption, CAPTION, { fontsize: fitSize(caption, CAPTION.h), color: PALETTE.textSecondary }),
+						text('value', expr(variable(key)), VALUE, {
+							fontsize: fitSize('recording', VALUE.h),
+							color: PALETTE.white,
+						}),
+					],
+					Object.entries(colours).map(([value, color]) => whenIs(key, value, [set('bg', 'color', color)])),
+					[],
+				),
+			)
+		}
+		status('cxc.transport', 'TRANSPORT', { playing: KEY.on, armed: KEY.attention, recording: KEY.alarm })
+		status('cxc.mode', 'MODE', { show: KEY.attention })
+		status('cxc.output', 'OUTPUT', { armed: KEY.on, shadow: KEY.attention, offline: KEY.alarm })
+	}
+
 	return {
 		section: {
 			id: `look_${app}`,
-			name: `${cat?.name ?? SHORT_NAME[app]}: styled keys`,
+			name: `${cat?.name ?? APP_NAME[app]}: styled keys`,
 			definitions: Object.keys(presets),
 		},
 		presets,

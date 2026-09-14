@@ -27,10 +27,12 @@ import type { ActionsSchema } from '../actions.js'
 import type { FeedbacksSchema } from '../feedbacks.js'
 import type { ModuleSchema } from '../main.js'
 import type { VariablesSchema } from '../variables.js'
-import type { Catalogue, CmdValue, ControlDef, StateValue } from './types.js'
+import { KEY_LOOKS, keyLabel, type KeyLook } from './looks/labels.js'
+import * as L from './looks/layers.js'
+import { GROUP_TINT, KEY, PALETTE } from './looks/palette.js'
+import type { Catalogue, CmdValue, ControlDef, StateKeyDef, StateValue } from './types.js'
 
 const WHITE = combineRgb(255, 255, 255)
-const DARK = combineRgb(24, 24, 28)
 const ON = combineRgb(0, 150, 60)
 const CHOSEN = combineRgb(30, 90, 200)
 
@@ -323,6 +325,70 @@ export function controlVariableValues(
 
 // ------------------------------------------------------------------ presets
 
+/** Show-critical always, or (given a value) when set to that value. */
+function isCritical(c: ControlDef, value?: string): boolean {
+	if (c.safety === 'critical') return true
+	if (!c.safety || typeof c.safety !== 'object') return false
+	return value === undefined ? Object.values(c.safety).includes('critical') : c.safety[value] === 'critical'
+}
+
+/**
+ * A control's key: its short label in white on its menu's tint, with a red
+ * bar across the top when the app treats the control as show-critical.
+ */
+function controlKey(
+	name: string,
+	label: string,
+	bg: number,
+	critical: boolean,
+	feedbacks: L.Json[],
+	steps: L.Json[],
+): L.Preset {
+	const area = critical ? { ...L.FULL, y: 8, h: 92 } : L.FULL
+	return L.layered(
+		name,
+		[
+			L.box('bg', bg),
+			...(critical ? [L.box('critical', KEY.critical, { ...L.FULL, h: 8 })] : []),
+			L.text('label', label, area, { fontsize: L.fitSize(label, area.h), color: PALETTE.white }),
+		],
+		feedbacks,
+		steps,
+	)
+}
+
+/**
+ * A small caption over a large value in figures: a number's readout (the
+ * app's value) or one of its nudges (the step), sized for `sizeFor`. A red bar
+ * across the top when the control is show-critical.
+ */
+function stackedKey(
+	name: string,
+	caption: string,
+	value: string | { value: string; isExpression: true },
+	sizeFor: string,
+	bg: number,
+	critical: boolean,
+	steps: L.Json[],
+): L.Preset {
+	const top = critical ? { ...L.CAPTION, y: 10, h: 26 } : L.CAPTION
+	return L.layered(
+		name,
+		[
+			L.box('bg', bg),
+			...(critical ? [L.box('critical', KEY.critical, { ...L.FULL, h: 8 })] : []),
+			L.text('caption', caption, top, { fontsize: L.fitSize(caption, top.h), color: PALETTE.textSecondary }),
+			L.text('value', value, L.VALUE, {
+				font: 'companion-mono',
+				fontsize: L.fitSize(sizeFor, L.VALUE.h, 0.6),
+				color: PALETTE.white,
+			}),
+		],
+		[],
+		steps,
+	)
+}
+
 export function buildControlPresets(
 	cat: Catalogue,
 	label: string,
@@ -331,80 +397,121 @@ export function buildControlPresets(
 	const presets: CompanionPresetDefinitions<ModuleSchema> = {}
 	const ids: string[] = []
 	const variable = (key: string) => `$(${label}:${naming(key)})`
-	const style = (text: string) => ({ text, textExpression: false, size: 'auto' as const, color: WHITE, bgcolor: DARK })
 	const groupOf = new Map<string, string>()
 	let group = ''
-	const add = (id: string, p: CompanionPresetDefinitions<ModuleSchema>[string]) => {
+	const add = (id: string, p: L.Preset) => {
 		presets[id] = p
 		ids.push(id)
 		groupOf.set(id, group)
 	}
+	const has = (key: string, type: StateKeyDef['type'], value?: string): boolean => {
+		const s = cat.state.find((k) => k.key === key)
+		return s?.type === type && (value === undefined || !!s.values?.includes(value))
+	}
+	const fill = (color: number): L.Override[] => [L.set('bg', 'color', color)]
+	const whenOn = (key: string | undefined, color: number): L.Json[] =>
+		key && has(key, 'bool') ? [L.feedback(boolFeedbackId(key), {}, fill(color))] : []
+	/** The lights a key's look adds beyond its own state, where the app reports that state. */
+	const lights = (look?: KeyLook): L.Json[] =>
+		(look?.lit ?? []).flatMap((l) => {
+			if (l.value === undefined)
+				return has(l.key, 'bool') ? [L.feedback(boolFeedbackId(l.key), {}, fill(l.bg), l.invert)] : []
+			return has(l.key, 'enum', l.value)
+				? [L.feedback(enumFeedbackId(l.key), { value: l.value }, fill(l.bg), l.invert)]
+				: []
+		})
 
 	for (const c of cat.controls) {
 		group = c.group ?? ''
 		const aid = actionId(c.id)
 		const pid = `p_${slug(c.id)}`
+		const look = KEY_LOOKS[c.id]
+		const tint = look?.bg ?? GROUP_TINT[group] ?? KEY.base
+		const short = look?.text ?? keyLabel(c.label)
 		switch (c.kind) {
 			case 'action':
-				add(pid, {
-					type: 'simple',
-					name: c.label,
-					style: style(c.label),
-					feedbacks: c.enabled_when
-						? [{ feedbackId: boolFeedbackId(c.enabled_when), options: {}, style: { bgcolor: ON, color: WHITE } }]
-						: [],
-					steps: [{ down: [{ actionId: aid, options: {} }], up: [] }],
-				})
+				add(
+					pid,
+					controlKey(
+						c.label,
+						short,
+						tint,
+						isCritical(c),
+						[...whenOn(c.enabled_when, KEY.attention), ...lights(look)],
+						L.press(aid),
+					),
+				)
 				break
 			case 'toggle':
-				add(pid, {
-					type: 'simple',
-					name: c.label,
-					style: style(c.label),
-					feedbacks: c.state
-						? [{ feedbackId: boolFeedbackId(c.state), options: {}, style: { bgcolor: ON, color: WHITE } }]
-						: [],
-					steps: [{ down: [{ actionId: aid, options: { mode: 'toggle' } }], up: [] }],
-				})
+				add(
+					pid,
+					controlKey(
+						c.label,
+						short,
+						tint,
+						isCritical(c),
+						[...whenOn(c.state, look?.on ?? KEY.on), ...lights(look)],
+						L.press(aid, { mode: 'toggle' }),
+					),
+				)
 				break
 			case 'choice':
 				for (const [value, vlabel] of c.choices ?? []) {
-					add(`${pid}__${value}`, {
-						type: 'simple',
-						name: `${c.label}: ${vlabel}`,
-						style: style(vlabel),
-						feedbacks: c.state
-							? [{ feedbackId: enumFeedbackId(c.state), options: { value }, style: { bgcolor: CHOSEN, color: WHITE } }]
-							: [],
-						steps: [{ down: [{ actionId: aid, options: { value } }], up: [] }],
-					})
+					const v = KEY_LOOKS[`${c.id}=${value}`]
+					const chosen =
+						c.state && has(c.state, 'enum', value)
+							? [L.feedback(enumFeedbackId(c.state), { value }, fill(v?.on ?? KEY.chosen))]
+							: []
+					add(
+						`${pid}__${value}`,
+						controlKey(
+							`${c.label}: ${vlabel}`,
+							v?.text ?? keyLabel(vlabel),
+							v?.bg ?? tint,
+							isCritical(c, value),
+							[...chosen, ...lights(v)],
+							L.press(aid, { value }),
+						),
+					)
 				}
 				break
-			case 'number':
+			case 'number': {
+				const caption = short.replace(/\n/g, ' ')
+				const unit = cat.state.find((s) => s.key === c.state)?.unit
+				const suffix = unit ? ` ${unit}` : ''
 				if (c.state) {
-					add(`${pid}__show`, {
-						type: 'simple',
-						name: `${c.label} (shows the value)`,
-						style: style(`${c.label}\n${variable(c.state)}`),
-						feedbacks: [],
-						steps: [{ down: [], up: [] }],
-					})
+					const v = variable(c.state)
+					// concat(), not +: Companion's + adds numbers, so -36 + ' dB' would read NaN
+					const shown = L.expr(`isNumber(${v}) ? concat(${v}, '${suffix}') : '--'`)
+					add(
+						`${pid}__show`,
+						stackedKey(`${c.label} (shows the value)`, caption, shown, `-00.0${suffix}`, KEY.tile, false, [
+							{ down: [], up: [] },
+						]),
+					)
 				}
 				if (nudgeable(c)) {
 					for (const [dir, steps] of [
 						['down', -1],
 						['up', 1],
 					] as const) {
-						add(`${pid}__${dir}`, {
-							type: 'simple',
-							name: `${c.label} ${steps > 0 ? '+' : '−'}${c.step}`,
-							style: style(`${c.label}\n${steps > 0 ? '+' : '−'}${c.step}`),
-							feedbacks: [],
-							steps: [{ down: [{ actionId: aid, options: { mode: 'nudge', steps, value: 0 } }], up: [] }],
-						})
+						const by = `${steps > 0 ? '+' : '−'}${c.step}`
+						add(
+							`${pid}__${dir}`,
+							stackedKey(
+								`${c.label} ${by}`,
+								caption,
+								`${by}${suffix}`,
+								`${by}${suffix}`,
+								tint,
+								isCritical(c),
+								L.press(aid, { mode: 'nudge', steps, value: 0 }),
+							),
+						)
 					}
 				}
 				break
+			}
 			case 'text':
 				break // a value typed per button: no sensible ready-made preset
 		}

@@ -36,6 +36,38 @@ export const PTT_TILE = {
 	latched: { fill: PALETTE.amber, text: PALETTE.white, label: 'Restored — Latched' },
 } as const
 
+/**
+ * The control presets: what a key's colour means when it lights, and each
+ * app menu's tint (Console Control's groups). White text reads on them all.
+ */
+export const KEY = {
+	/** a key outside any menu */
+	base: hex('#262626'),
+	/** a readout */
+	tile: hex('#333333'),
+	/** on, or going well: a toggle that's on, playing, chase */
+	on: hex('#1f8f4e'),
+	/** the chosen option: the app's selected segment */
+	chosen: PALETTE.accent,
+	/** needs a look: available, armed, unsaved, Show mode */
+	attention: hex('#b36b00'),
+	/** stop and look: recording, offline, Panic */
+	alarm: hex('#b3261e'),
+	/** the bar across a show-critical key */
+	critical: PALETTE.red,
+} as const
+
+export const GROUP_TINT: Record<string, number> = {
+	transport: hex('#14213d'),
+	cue: hex('#173a2a'),
+	navigate: hex('#1d2f4a'),
+	markers: hex('#2d1f47'),
+	edit: hex('#3a2a14'),
+	audio: hex('#123636'),
+	track: hex('#2b2340'),
+	view: hex('#22303a'),
+}
+
 /** Level-meter fill per app and state, from each app's menu-bar ICON_COLOURS. */
 export const METER = {
 	tlt: { base: hex('#5c8fd6'), states: { key: 'tlt.talk', colours: { active: hex('#e8f0ff') } } },

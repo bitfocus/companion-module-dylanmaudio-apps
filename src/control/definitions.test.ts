@@ -200,7 +200,7 @@ describe('presets', () => {
 
 	it('a button per control, lit by its own state', () => {
 		const run = presets['p_demo__run']
-		expect(run).toMatchObject({ type: 'simple', name: 'Run' })
+		expect(run).toMatchObject({ type: 'layered', name: 'Run' })
 		expect(JSON.stringify(run)).toContain(boolFeedbackId('demo.running'))
 		for (const v of ['auto', 'latch']) {
 			const p = presets[`p_demo__mode__${v}`]

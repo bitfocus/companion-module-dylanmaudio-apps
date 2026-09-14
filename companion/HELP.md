@@ -34,13 +34,13 @@ With MIDI Bridge 1.1.9 or later, this connection also controls the bridge
 app itself: **Run** (start or stop the bridge), **Restart bridge** and
 **Auto-reconnect**. Its state shows as `$(dlive:bridge_state)` (stopped ·
 not connected · connecting · connected · error), `$(dlive:bridge_running)`,
-`$(dlive:bridge_msg_rate)` and a few more, with presets under *MIDI
-Bridge*. These go to the bridge's menu-bar side on port 8770, so they
+`$(dlive:bridge_msg_rate)` and a few more, with presets under _MIDI
+Bridge_. These go to the bridge's menu-bar side on port 8770, so they
 still work while the bridge itself is stopped. The connection status then
 reads "MIDI Bridge is stopped" instead of "nothing answering".
 
 Turn on **Allow Companion control** in the bridge's popover. Stopping and
-restarting are refused while its *Lock show-critical controls* switch is
+restarting are refused while its _Lock show-critical controls_ switch is
 on. An older bridge simply doesn't offer these, and console control works
 as before.
 
@@ -62,25 +62,38 @@ here without a new version of this module.
 - **Port 0** uses the app's standard port (Talk Light 8771, Pilot Tone
   8772, Time Code Tool 8773, Console Control 8774).
 - **Show-critical controls** — stopping an app, changing Pilot Tone's
-  failback mode — are refused while the app's *Lock show-critical
-  controls* switch is on. The action says so in its description.
+  failback mode — are refused while the app's _Lock show-critical
+  controls_ switch is on. The action says so in its description.
 - **When an app says no**, its own reason goes to the Companion log word
   for word — "Signal is still below threshold — stay on backup".
 - **When an app isn't running**, its buttons stay put: the connection
   remembers the app's controls from last time. A press then says in the
   log that the app isn't answering.
-- **Styled keys.** Each app also has a *styled keys* preset section, in
+- **The presets read at a glance.** Each key has a short label sized to fit
+  whole, like PLAY, TO START or CUE UNITY. It sits on its menu's colour, with a
+  red bar across the top when the control is show-critical. A key lights:
+  - **green** while its switch is on;
+  - **blue** for the chosen option (Pilot Tone's Latch in its amber);
+  - **amber** when it needs a look: Reset available, record armed, unsaved
+    changes, the console out of step with the timeline.
+
+  Console Control's REC turns red while it records. A control an app adds
+  later gets a short label made from its name.
+
+- **Styled keys.** Each app also has a _styled keys_ preset section, in
   the app's own look:
   - its **logo** and its **menu-bar icon** (mirroring every state, with
     MIDI Bridge's activity flash). Pressing either opens the app, or starts
     it if it isn't running;
   - a round **Run** button that fills green while the app runs;
-  - a **level meter** (Talk Light's with its threshold marked);
-  - Pilot Tone's **Automatic / Latch** keys and **status tile**, amber when
-    latched, as in the app.
+  - a **level meter** (Talk Light's and Pilot Tone's with the threshold marked);
+  - Pilot Tone's **Auto / Latch** keys and **status tile**, amber when
+    latched, as in the app;
+  - Console Control's **status tiles**: timecode, transport, mode and output.
 
   Starting an app uses macOS's `open`, which is why the module asks for
   permission to run programs. A running app is never started twice.
+
 - **Console Control's presets follow its menus**: a section per
   category (Transport, Console, Cue, Navigate, Track, Edit, Markers, …),
   one key per keyboard shortcut. In Show Mode, edits are refused with the
@@ -106,8 +119,8 @@ the two triggers that drive it ship as one file,
 
 1. **Import / Export** → choose the file → the **Buttons** tab (not Full
    Import, which replaces your configuration). Source page **1 (TALK)**,
-   destination **[ Insert new page ]**. Under *Import Connections
-   Behavior*, pick your Talk Light connection — or **[ Create new
+   destination **[ Insert new page ]**. Under _Import Connections
+   Behavior_, pick your Talk Light connection — or **[ Create new
    connection ]**, which arrives set up for Talk Light on its standard port.
    Don't leave it linked to a MIDI Bridge connection.
 2. Same file, the **Triggers** tab: select both, the same connection
@@ -118,10 +131,10 @@ the two triggers that drive it ship as one file,
 
 **What it does**
 
-- **Talk starts** — *Talk flash: talk start* sends the deck to the TALK
+- **Talk starts** — _Talk flash: talk start_ sends the deck to the TALK
   page. Every TALK key blinks together, off one timer: 2 Hz by default,
   adjustable, never faster than 3 Hz.
-- **Talk ends** — *Talk flash: talk end* sends the deck back to the page
+- **Talk ends** — _Talk flash: talk end_ sends the deck back to the page
   it was on.
 - **EXIT** (top-left) sends the deck it is pressed on back straight away
   and starts a cooldown: 10 s by default, adjustable, 0 for none. A talk
@@ -134,13 +147,13 @@ came from. Seen on a real Stream Deck: talk taken over from page 7
 came back to page 5. For each deck, the module can remember the
 page for you:
 
-1. A trigger on the deck's page variable: event *variable changed*
+1. A trigger on the deck's page variable: event _variable changed_
    `internal:surface_<id>_page`, with the action **Talk flash: remember a
    deck's page**. Choose Deck 1, and set the page field to that same
    variable in expression mode. It keeps the deck's last page that
    isn't the TALK page, as `$(tlt:talk_return_1)`.
-2. In *Talk flash: talk end*, and in the TALK page's EXIT key, set the
-   page to `$(tlt:talk_return_1)` (expression) instead of *back*.
+2. In _Talk flash: talk end_, and in the TALK page's EXIT key, set the
+   page to `$(tlt:talk_return_1)` (expression) instead of _back_.
 
 Decks 2–4 work the same way with `talk_return_2` … `_4`.
 
@@ -158,25 +171,25 @@ preset, and the variables `$(tlt:talk_active)`, `$(tlt:talk_flash_armed)`,
 
 ## Connection settings
 
-| Setting | Notes |
-|---|---|
-| App | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above |
-| Talk flash rate / cooldown / TALK page number | Talk Light only — see *Talk flash* above |
-| MIDI Bridge address / port / token | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion |
-| Bridge app control port | 0 = the standard 8770, on the same address. For Run, Restart and Auto-reconnect (MIDI Bridge 1.1.9+) |
-| Console firmware | Not detectable over MIDI; shown in `$(dlive:firmware)` |
-| Inputs in use / extended types | Bounds the variable grid and the preset library |
-| Scene Go / Next / Previous | The CC number + value you assigned on the console. 0/0 = not assigned |
-| Console Actions map | `cc,value,Name` per line. Optional when a firmware 2.1x show file is loaded — Actions import automatically; manual lines win on the same CC/value |
-| Show file | Loaded on the connection's own **show file page**, not here — see below |
-| Show file path (advanced) | Only useful when the file sits somewhere this sandboxed module can read. An uploaded show wins over it |
-| Scene names (manual) | `scene,Name` per line; overrides the show file |
-| Show send levels in dB | On by default. The send law was measured on hardware and matches the fader law exactly; turn off for raw 0–127 |
-| Preamp gain range | Sources disagree; pick what matches your screen |
+| Setting                                       | Notes                                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App                                           | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above          |
+| Talk flash rate / cooldown / TALK page number | Talk Light only — see _Talk flash_ above                                                                                                          |
+| MIDI Bridge address / port / token            | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion                                                                               |
+| Bridge app control port                       | 0 = the standard 8770, on the same address. For Run, Restart and Auto-reconnect (MIDI Bridge 1.1.9+)                                              |
+| Console firmware                              | Not detectable over MIDI; shown in `$(dlive:firmware)`                                                                                            |
+| Inputs in use / extended types                | Bounds the variable grid and the preset library                                                                                                   |
+| Scene Go / Next / Previous                    | The CC number + value you assigned on the console. 0/0 = not assigned                                                                             |
+| Console Actions map                           | `cc,value,Name` per line. Optional when a firmware 2.1x show file is loaded — Actions import automatically; manual lines win on the same CC/value |
+| Show file                                     | Loaded on the connection's own **show file page**, not here — see below                                                                           |
+| Show file path (advanced)                     | Only useful when the file sits somewhere this sandboxed module can read. An uploaded show wins over it                                            |
+| Scene names (manual)                          | `scene,Name` per line; overrides the show file                                                                                                    |
+| Show send levels in dB                        | On by default. The send law was measured on hardware and matches the fader law exactly; turn off for raw 0–127                                    |
+| Preamp gain range                             | Sources disagree; pick what matches your screen                                                                                                   |
 
 ### Status colours
 
-Green means **the bridge is reachable *and* reports its console link is
+Green means **the bridge is reachable _and_ reports its console link is
 up** — not merely that the bridge answered. If the bridge is running but
 the desk is not connected you get:
 
@@ -204,7 +217,7 @@ The file is read in the browser and only the **scene names** and the
 not stored, and nothing leaves the computer. It survives restarts, so the
 show file does not have to stay on the Companion machine — which matters,
 since Companion runs modules sandboxed to their own folder and usually
-*cannot* read a path you type in.
+_cannot_ read a path you type in.
 
 Anything typed into **Scene names (manual)** or **Console Actions map** still
 wins over the loaded show, so a wrong or out-of-date entry can be corrected
@@ -214,13 +227,13 @@ without re-exporting anything.
 
 - **Mutes and scene recalls** are pushed by the desk the moment they
   change — no polling, sub-50 ms.
-- **Faders**: the desk only announces *which* fader moved. The module
+- **Faders**: the desk only announces _which_ fader moved. The module
   asks for the level once the movement settles (one query per gesture).
 - **Names and colours** are read on connect and whenever a strip is
   renamed on the surface.
 - **Sends, assigns, preamps, HPF**: not announced by the desk, and the
   bridge's state mirror does not yet carry them. Feedbacks for these
-  reflect changes *this module* makes, and will not follow changes made
+  reflect changes _this module_ makes, and will not follow changes made
   on the surface or by another controller. They are listed in
   `$(dlive:unsupported_gets)` so the limitation is visible.
 - Anything the module sets itself is mirrored immediately, so buttons
@@ -286,5 +299,5 @@ GO / Next / Previous; named Console Actions; a status button.
   it in the bridge (address, MIDI mode Off/Secure, Global MIDI Receive).
 - **Wrong strip moves**: base MIDI channel mismatch — set it in the
   bridge; this module reads it from there.
-- Tick *Log every decoded event* in the settings and watch the Companion
+- Tick _Log every decoded event_ in the settings and watch the Companion
   log to see exactly what the desk is sending.
