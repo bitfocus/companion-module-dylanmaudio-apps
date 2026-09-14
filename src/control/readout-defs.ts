@@ -91,7 +91,10 @@ export function timecodeReadoutPresets(
 			feedbacks: lit.map(({ value, color }) => ({
 				feedbackId: enumFeedbackId(STATE_KEY),
 				options: { value },
-				styleOverrides: [{ elementId: 'digits', elementProperty: 'color', override: color }],
+				// wrapped: Companion drops a plain-valued override (see looks.ts)
+				styleOverrides: [
+					{ elementId: 'digits', elementProperty: 'color', override: { value: color, isExpression: false } },
+				],
 			})),
 			steps: [{ down: [], up: [] }],
 		} as unknown as Preset

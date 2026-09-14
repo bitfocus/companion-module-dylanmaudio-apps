@@ -69,10 +69,15 @@ interface Override {
 	elementProperty: string
 	override: unknown
 }
-const set = (elementId: string, elementProperty: string, override: unknown): Override => ({
+/**
+ * Companion 5.0.5 keeps a preset feedback's override only when it is wrapped
+ * as { value, isExpression } — a plain value, though the module API's types
+ * allow it, is filtered out, and a feedback left with no overrides is dropped.
+ */
+const set = (elementId: string, elementProperty: string, value: unknown): Override => ({
 	elementId,
 	elementProperty,
-	override,
+	override: { value, isExpression: false },
 })
 const whenIs = (key: string, value: string, overrides: Override[]): Json => ({
 	feedbackId: enumFeedbackId(key),
@@ -193,6 +198,7 @@ export function buildLookPresets(
 						set('ring', 'color', PALETTE.good),
 						set('ring', 'borderColor', PALETTE.good),
 						set('label', 'color', PALETTE.ink),
+						set('label', 'text', 'RUNNING'),
 					]),
 				],
 				press(actionId(`${app}.run`), { mode: 'toggle' }),

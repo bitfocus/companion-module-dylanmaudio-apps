@@ -43,6 +43,10 @@ describe('styled keys', () => {
 				expect(new Set(elementIds).size, id).toBe(elementIds.length)
 				for (const f of p.feedbacks as Json[]) {
 					expect(feedbacks, `${id}: feedback`).toContain(f.feedbackId)
+					// Companion drops a feedback whose overrides aren't wrapped as { value, isExpression }
+					expect((f.styleOverrides as Json[]).length, `${id}: overrides`).toBeGreaterThan(0)
+					for (const o of f.styleOverrides as Json[])
+						expect(o.override, `${id}: wrapped`).toMatchObject({ isExpression: false })
 					for (const o of f.styleOverrides as Json[]) expect(elementIds, `${id}: override`).toContain(o.elementId)
 				}
 				for (const step of p.steps as Json[])
@@ -73,15 +77,30 @@ describe('styled keys', () => {
 		expect(latch.styleOverrides).toContainEqual({
 			elementId: 'pill',
 			elementProperty: 'color',
-			override: PALETTE.amber,
+			override: { value: PALETTE.amber, isExpression: false },
 		})
 		const tile = (presets.p_ptt__look_status.feedbacks as Json[]).find((f) => f.options.value === 'latched')
 		expect(tile?.styleOverrides).toContainEqual({
 			elementId: 'tile',
 			elementProperty: 'color',
-			override: PTT_TILE.latched.fill,
+			override: { value: PTT_TILE.latched.fill, isExpression: false },
 		})
 		expect(PALETTE.amber).toBe(0xe8a94a)
+	})
+
+	it('Run fills green and says RUNNING while the app runs', () => {
+		const run = looksFor('tlt').presets.p_tlt__look_run.feedbacks[0] as Json
+		expect(run.feedbackId).toBe('st_tlt__running')
+		expect(run.styleOverrides).toContainEqual({
+			elementId: 'ring',
+			elementProperty: 'color',
+			override: { value: PALETTE.good, isExpression: false },
+		})
+		expect(run.styleOverrides).toContainEqual({
+			elementId: 'label',
+			elementProperty: 'text',
+			override: { value: 'RUNNING', isExpression: false },
+		})
 	})
 
 	it("the bridge's icon shows MIDI activity over its state, with bridge_ variables", () => {
