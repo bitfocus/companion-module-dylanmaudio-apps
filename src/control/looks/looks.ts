@@ -54,7 +54,7 @@ function text(id: string, value: string | { value: string; isExpression: true },
 		id,
 		...at(b),
 		text: value,
-		fontsize: 14,
+		fontsize: 100,
 		fontsizeAllowShrink: true,
 		font: 'companion-sans',
 		color: PALETTE.textSecondary,
@@ -138,7 +138,7 @@ export function buildLookPresets(
 			[
 				box('bg', PALETTE.window),
 				image('logo', APP_LOGOS[app], { x: 12, y: 4, w: 76, h: 70 }),
-				text('name', SHORT_NAME[app], { x: 0, y: 76, w: 100, h: 22 }, { fontsize: 11 }),
+				text('name', SHORT_NAME[app], { x: 0, y: 76, w: 100, h: 22 }),
 			],
 			[],
 			openApp,
@@ -160,13 +160,8 @@ export function buildLookPresets(
 				`${SHORT_NAME[app]} menu-bar icon (opens the app)`,
 				[
 					box('bg', PALETTE.window),
-					image('icon', icons.stopped, { x: 10, y: 8, w: 80, h: 64 }),
-					text(
-						'state',
-						expr(variable(stateKey)),
-						{ x: 0, y: 74, w: 100, h: 24 },
-						{ fontsize: 10, color: PALETTE.textMuted },
-					),
+					image('icon', icons.stopped, { x: 12, y: 4, w: 76, h: 60 }),
+					text('state', expr(variable(stateKey)), { x: 0, y: 68, w: 100, h: 30 }),
 				],
 				feedbacks,
 				openApp,
@@ -190,7 +185,7 @@ export function buildLookPresets(
 						borderWidth: 4,
 						borderColor: PALETTE.textMuted,
 					},
-					text('label', 'RUN', { x: 20, y: 20, w: 72, h: 72 }, { fontsize: 16, weight: 'bold' }),
+					text('label', 'RUN', { x: 20, y: 20, w: 72, h: 72 }, { fontsize: 42, weight: 'bold' }),
 					image('logo', APP_LOGOS[app], { x: 2, y: 2, w: 26, h: 26 }),
 				],
 				[
@@ -215,12 +210,7 @@ export function buildLookPresets(
 		const stops = (color: number): Json[] => [{ value: DB_MIN, color, gradient: false }]
 		const elements: Json[] = [
 			box('bg', PALETTE.window),
-			text(
-				'title',
-				METER_TITLE[app] ?? 'LEVEL',
-				{ x: 0, y: 4, w: 100, h: 20 },
-				{ fontsize: 11, color: PALETTE.textMuted },
-			),
+			text('title', METER_TITLE[app] ?? 'LEVEL', { x: 0, y: 2, w: 100, h: 24 }),
 			{
 				type: 'gauge',
 				id: 'meter',
@@ -237,11 +227,8 @@ export function buildLookPresets(
 			text(
 				'db',
 				expr(`isNumber(${level}) ? round(${level}) + ' dB' : '--'`),
-				{ x: 0, y: 70, w: 100, h: 26 },
-				{
-					fontsize: 13,
-					font: 'companion-mono',
-				},
+				{ x: 0, y: 66, w: 100, h: 32 },
+				{ font: 'companion-mono' },
 			),
 		]
 		const thresholdKey = `${app}.threshold_db`
@@ -277,7 +264,7 @@ export function buildLookPresets(
 				[
 					box('bg', PALETTE.window),
 					box('pill', PALETTE.control, { x: 6, y: 24, w: 88, h: 52 }, { cornerRadius: 14 }),
-					text('label', caption, { x: 6, y: 24, w: 88, h: 52 }, { fontsize: 13, weight: 'bold' }),
+					text('label', caption, { x: 6, y: 24, w: 88, h: 52 }, { fontsize: 60, weight: 'bold' }),
 				],
 				[whenIs('ptt.failback_mode', mode, [set('pill', 'color', lit), set('label', 'color', PALETTE.white)])],
 				press(actionId('ptt.failback_mode'), { value: mode }),
@@ -298,7 +285,7 @@ export function buildLookPresets(
 						'label',
 						PTT_TILE.stopped.label,
 						{ x: 6, y: 28, w: 88, h: 60 },
-						{ fontsize: 13, weight: 'bold', color: PTT_TILE.stopped.text },
+						{ fontsize: 44, weight: 'bold', color: PTT_TILE.stopped.text },
 					),
 				],
 				states.map(([state, look]) =>

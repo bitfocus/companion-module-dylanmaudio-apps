@@ -10,6 +10,7 @@ import type { AppId } from '../registry.js'
 import type { Catalogue } from '../types.js'
 import { APP_LOGOS, MENUBAR_ICONS } from './images.js'
 import { buildLookPresets } from './looks.js'
+import { timecodeReadoutPresets } from '../readout-defs.js'
 import { PALETTE, PTT_TILE } from './palette.js'
 
 type Json = Record<string, any>
@@ -62,6 +63,19 @@ describe('styled keys', () => {
 			if (app !== 'cxc') expect(presets[`p_${app}__look_menubar`]?.steps[0].down[0].actionId).toBe(OPEN_APP_ACTION)
 		}
 		expect(looksFor('cxc').presets.p_cxc__look_menubar).toBeUndefined()
+	})
+
+	it('every text is big enough to read on a Stream Deck key', () => {
+		// Companion draws text at fontsize% of the element's own height, over 1.2 (its RenderThread)
+		const presets = [...APPS.flatMap((app) => Object.values(looksFor(app).presets))]
+		const readout = timecodeReadoutPresets(catOf('tct'), 'tct')
+		presets.push(...(Object.values(readout?.presets ?? {}) as Json[]))
+		for (const p of presets)
+			for (const e of p.elements as Json[])
+				if (e.type === 'text') {
+					const percentOfKey = ((e.fontsize as number) * (e.height as number)) / 100 / 1.2
+					expect(percentOfKey, `${p.name as string}: ${e.id as string}`).toBeGreaterThanOrEqual(14)
+				}
 	})
 
 	it('the images are PNGs', () => {
