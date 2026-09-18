@@ -1,8 +1,8 @@
 {
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"type": "connection",
-	"id": "dylanmaudio",
-	"name": "dylanmaudio",
+	"id": "dylanmaudio-apps",
+	"name": "dylanmaudio-apps",
 	"shortname": "dylanmaudio",
 	"description": "Control the dylanmaudio apps: an Allen & Heath dLive through the dLive MIDI Bridge (one shared console connection with full state feedback), plus Talk Light Trigger, Pilot Tone Trigger, Time Code Tool and Console Control. Requires the apps; it does not connect to a console directly.",
 	"version": "0.0.0",
@@ -21,7 +21,7 @@
 		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
 	},
-	"legacyIds": [],
+	"legacyIds": ["dylanmaudio"],
 	"manufacturer": "dylanmaudio",
 	"products": ["dLive MIDI Bridge", "Talk Light Trigger", "Pilot Tone Trigger", "Time Code Tool", "Console Control"],
 	"keywords": ["Audio", "Mixer", "dLive", "MIDI", "Talkback", "Playback failover", "LTC", "MTC", "Show control"]

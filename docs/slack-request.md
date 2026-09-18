@@ -1,8 +1,17 @@
-# Bitfocus repo request: `companion-module-dylanmaudio`
+# Bitfocus repo request: `companion-module-dylanmaudio-apps`
 
 The second request, now that the module meets the conditions set in
 August. The first request (`dylanmaudio-dlive`, 27–29 Aug 2026) and how it
 was answered are kept at the foot of this file.
+
+## Status
+
+- **17 Sep 2026.** The reviewers answered the request and suggested the
+  id `dylanmaudio-apps`, so the module now uses it: in the manifest, the
+  package name and the TALK page import. `legacyIds: ["dylanmaudio"]`
+  carries across connections made with pre-release builds, including the
+  development rig. Not approved yet. Next, a maintainer creates the repo
+  in the bitfocus org.
 
 ## Process (checked 14 Sep 2026)
 
@@ -13,7 +22,7 @@ module-checks.yaml, 8 Sep 2026).
 1. **Post in `#module-development`** on the Bitfocus Slack. Include your
    GitHub username and the module name. There is no form or template; an
    issue in `bitfocus/companion-module-requests` does not count.
-2. **A maintainer creates `bitfocus/companion-module-dylanmaudio`** and
+2. **A maintainer creates `bitfocus/companion-module-dylanmaudio-apps`** and
    gives `dylanmaudio` write access. Push this repo's history there.
 3. **Point the manifest's `repository` and `bugs` at the bitfocus repo**,
    and set `package.json`'s repository URL to match.
@@ -24,17 +33,17 @@ module-checks.yaml, 8 Sep 2026).
 
 ### What the CI gate checks, and where this repo stands
 
-| Check                                                               | Status          |
-| ------------------------------------------------------------------- | --------------- |
-| `yarn.lock` present, no `package-lock.json`                         | ✓               |
-| repo is `companion-module-<id>`, and the manifest id equals `<id>`  | ✓ `dylanmaudio` |
-| tag equals the `package.json` version                               | at tag time     |
-| manifest `runtime.apiVersion` is `0.0.0` (the build fills it in)    | ✓               |
-| `products` not empty, no template placeholders                      | ✓               |
-| `companion/HELP.md` exists                                          | ✓               |
-| `@companion-module/tools` ≥ 3.1.0                                   | ✓ 3.1.0         |
-| `yarn build`, then `companion-module-build`, then the package loads | ✓ locally       |
-| `package.json` licence MIT                                          | ✓               |
+| Check                                                               | Status               |
+| ------------------------------------------------------------------- | -------------------- |
+| `yarn.lock` present, no `package-lock.json`                         | ✓                    |
+| repo is `companion-module-<id>`, and the manifest id equals `<id>`  | ✓ `dylanmaudio-apps` |
+| tag equals the `package.json` version                               | at tag time          |
+| manifest `runtime.apiVersion` is `0.0.0` (the build fills it in)    | ✓                    |
+| `products` not empty, no template placeholders                      | ✓                    |
+| `companion/HELP.md` exists                                          | ✓                    |
+| `@companion-module/tools` ≥ 3.1.0                                   | ✓ 3.1.0              |
+| `yarn build`, then `companion-module-build`, then the package loads | ✓ locally            |
+| `package.json` licence MIT                                          | ✓                    |
 
 ### Settled before posting
 
@@ -47,11 +56,10 @@ module-checks.yaml, 8 Sep 2026).
   running app to the front.
 - **The first public version is 1.0.0**, as Bitfocus's versioning guide
   asks.
-- **`legacyIds` is empty.** `dylanmaudio-dlive` was never published, so
-  there's nothing to migrate from.
-- **The id stays `dylanmaudio`**, with `dylanmaudio-apps` offered if they
-  want the `manufacturer-product` shape. A rename later needs a
-  `legacyIds` entry and a new Bitfocus repo, so settle it in the thread.
+- **`legacyIds` is `["dylanmaudio"]`.** Pre-release builds used that id,
+  so connections made with them migrate. `dylanmaudio-dlive` was never
+  published and isn't listed.
+- **The id is `dylanmaudio-apps`**, as the reviewers suggested (17 Sep).
 
 ### Worth doing first (optional)
 
@@ -60,7 +68,7 @@ module-checks.yaml, 8 Sep 2026).
   `BrentonStarkie`'s PR #8, as corrected on 13 Sep, haven't been posted.
   Posting them first backs up the offer at the end of the message.
 
-## The message
+## The message (draft of 14 Sep)
 
 > Hi! A follow-up to my request from late August (`dylanmaudio-dlive`).
 > I've made the changes you asked for, and I'd like to request a repo under

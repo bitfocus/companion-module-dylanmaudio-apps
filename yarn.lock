@@ -891,9 +891,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dylanmaudio@workspace:.":
+"dylanmaudio-apps@workspace:.":
   version: 0.0.0-use.local
-  resolution: "dylanmaudio@workspace:."
+  resolution: "dylanmaudio-apps@workspace:."
   dependencies:
     "@companion-module/base": "npm:~2.1.3"
     "@companion-module/tools": "npm:^3.1.0"

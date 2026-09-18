@@ -248,7 +248,7 @@ export function buildTalkFlashConfig() {
 		instances: {
 			[CONNECTION_ID]: {
 				moduleInstanceType: 'connection',
-				moduleId: 'dylanmaudio',
+				moduleId: 'dylanmaudio-apps',
 				moduleVersionId: null,
 				updatePolicy: 'stable',
 				sortOrder: 0,
