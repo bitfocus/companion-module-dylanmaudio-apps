@@ -8,7 +8,7 @@
 	"author": "Dylan Mitrovich (dylanmaudio)",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio.git"
+		"url": "git+https://github.com/bitfocus/companion-module-dylanmaudio-apps.git"
 	},
 	"scripts": {
 		"format": "prettier -w .",

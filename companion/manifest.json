@@ -7,8 +7,8 @@
 	"description": "Control the dylanmaudio apps: an Allen & Heath dLive through the dLive MIDI Bridge (one shared console connection with full state feedback), plus Talk Light Trigger, Pilot Tone Trigger, Time Code Tool and Console Control. Requires the apps; it does not connect to a console directly.",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/dylanmaudio/companion-module-dylanmaudio.git",
-	"bugs": "https://github.com/dylanmaudio/companion-module-dylanmaudio/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-dylanmaudio-apps.git",
+	"bugs": "https://github.com/bitfocus/companion-module-dylanmaudio-apps/issues",
 	"maintainers": [
 		{
 			"name": "Dylan Mitrovich",
