@@ -1,0 +1,8 @@
+dist/
+pkg/
+node_modules/
+*.tgz
+# Vendored byte-for-byte from dLive-Utility-Apps (tools/sync_fixtures.sh);
+# reformatting them breaks the sync check on both sides.
+fixtures/
+companion/talk-flash.companionconfig

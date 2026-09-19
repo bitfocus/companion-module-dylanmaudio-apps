@@ -29,7 +29,7 @@ module-checks.yaml, 8 Sep 2026).
 4. **Tag `v1.0.0`** (it must equal `package.json`'s version) and submit
    the tag at <https://developer.bitfocus.io>: My Connections → Submit
    Version. Volunteers review it, and feedback arrives in the portal. Once
-   approved, anyone on Companion 4.0+ can install the module.
+   approved, anyone on Companion 5.0+ can install the module.
 
 ### What the CI gate checks, and where this repo stands
 
