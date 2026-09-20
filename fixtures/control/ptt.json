@@ -42,6 +42,11 @@
         "enabled_when": "ptt.reset_available"
       },
       {
+        "id": "ptt.flip",
+        "label": "Flip A/B",
+        "kind": "action"
+      },
+      {
         "id": "ptt.tone",
         "label": "Tone generator",
         "kind": "toggle",
@@ -76,7 +81,8 @@
           "stopped",
           "ok",
           "lost",
-          "latched"
+          "latched",
+          "degraded"
         ]
       },
       {
@@ -110,6 +116,11 @@
         "label": "Threshold",
         "type": "number",
         "unit": "dB"
+      },
+      {
+        "key": "ptt.integrity_errors",
+        "label": "Integrity errors",
+        "type": "number"
       }
     ]
   },
@@ -120,7 +131,8 @@
     "ptt.reset_available": false,
     "ptt.tone_running": false,
     "ptt.level_db": null,
-    "ptt.threshold_db": -45.0
+    "ptt.threshold_db": -45.0,
+    "ptt.integrity_errors": 0
   },
   "refusals": {
     "ptt.reset": "Signal is still below threshold — stay on backup."
@@ -249,6 +261,34 @@
       "calls": [
         [
           "ptt.reset",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "cmd.flip",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k7",
+          "control": "ptt.flip"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k7",
+          "control": "ptt.flip",
+          "value": null
+        }
+      },
+      "calls": [
+        [
+          "ptt.flip",
           null
         ]
       ]
