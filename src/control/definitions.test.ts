@@ -286,12 +286,22 @@ describe('Pilot Tone Trigger (fixtures/control/ptt.json)', () => {
 		)
 		const vars = Object.keys(buildControlVariables(pc)).filter((k) => !k.startsWith('ctl_'))
 		expect(vars.sort()).toEqual(
-			['failback_mode', 'level_db', 'reset_available', 'running', 'state', 'threshold_db', 'tone_running'].sort(),
+			[
+				'failback_mode',
+				'integrity_errors',
+				'level_db',
+				'reset_available',
+				'running',
+				'state',
+				'threshold_db',
+				'tone_running',
+			].sort(),
 		)
 		const { presets } = buildControlPresets(pc, 'ptt')
 		expect(Object.keys(presets).sort()).toEqual(
 			[
 				'p_ptt__failback_mode__auto',
+				'p_ptt__flip',
 				'p_ptt__failback_mode__latch',
 				'p_ptt__reset',
 				'p_ptt__run',

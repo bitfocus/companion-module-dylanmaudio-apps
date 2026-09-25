@@ -34,6 +34,8 @@ export const PTT_TILE = {
 	ok: { fill: hex('#1c2a3f'), text: hex('#8fb3e0'), label: 'Signal Present' },
 	lost: { fill: PALETTE.red, text: PALETTE.white, label: 'Signal Lost' },
 	latched: { fill: PALETTE.amber, text: PALETTE.white, label: 'Restored — Latched' },
+	/** the tile's violet: the level is fine, but the tone looks corrupted */
+	degraded: { fill: hex('#a16ae8'), text: PALETTE.white, label: 'Signal Degraded' },
 } as const
 
 /**
@@ -73,7 +75,10 @@ export const METER = {
 	tlt: { base: hex('#5c8fd6'), states: { key: 'tlt.talk', colours: { active: hex('#e8f0ff') } } },
 	ptt: {
 		base: hex('#5c8fd6'),
-		states: { key: 'ptt.state', colours: { lost: hex('#e85c5c'), latched: hex('#e8a94a') } },
+		states: {
+			key: 'ptt.state',
+			colours: { lost: hex('#e85c5c'), latched: hex('#e8a94a'), degraded: hex('#d9743f') },
+		},
 	},
 	tct: {
 		base: hex('#3fb65c'),

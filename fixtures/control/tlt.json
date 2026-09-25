@@ -5,7 +5,7 @@
   "app": {
     "id": "tlt",
     "name": "Talk Light Trigger",
-    "version": "1.0.8"
+    "version": "<str>"
   },
   "catalogue": {
     "controls": [

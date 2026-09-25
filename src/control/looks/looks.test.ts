@@ -78,9 +78,11 @@ describe('styled keys', () => {
 				}
 	})
 
-	it('the images are PNGs', () => {
+	it('the images are PNGs: a logo per app, an icon per menu-bar state', () => {
 		const all = [...Object.values(APP_LOGOS), ...Object.values(MENUBAR_ICONS).flatMap((s) => Object.values(s))]
-		expect(all).toHaveLength(5 + 19)
+		// counted, not pinned: an app that adds a state (Pilot Tone's "degraded") adds an icon
+		expect(Object.keys(APP_LOGOS).sort()).toEqual([...APPS].sort())
+		for (const [app, icons] of Object.entries(MENUBAR_ICONS)) expect(Object.keys(icons).length, app).toBeGreaterThan(2)
 		for (const b of all) expect([...Buffer.from(b, 'base64').subarray(0, 8)]).toEqual(PNG)
 	})
 

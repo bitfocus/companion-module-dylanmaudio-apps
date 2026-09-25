@@ -1,4 +1,4 @@
-# companion-module-dylanmaudio-apps
+# dylanmaudio-apps — Bitfocus Companion module
 
 Bitfocus Companion module for the **dylanmaudio apps**: dLive MIDI
 Bridge, Talk Light Trigger, Pilot Tone Trigger, Time Code Tool and

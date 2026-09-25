@@ -137,7 +137,13 @@ def mb(state, flash=0.0):
 
 
 # ---------------------------------------------------------------- Pilot Tone
-PTT = {"stopped": "#4A4A56", "ok": "#5C8FD6", "lost": "#E85C5C", "latched": "#E8A94A"}
+PTT = {
+    "stopped": "#4A4A56",
+    "ok": "#5C8FD6",
+    "lost": "#E85C5C",
+    "latched": "#E8A94A",
+    "degraded": "#D9743F",
+}
 
 
 def ptt(colour):

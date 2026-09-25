@@ -74,6 +74,7 @@ const looks: [string, KeyLook][] = [
 	['ptt.failback_mode=latch', { text: 'LATCH', on: PALETTE.amber }],
 	['ptt.reset', { text: 'RESET' }],
 	['ptt.tone', { text: 'TONE\nGEN' }],
+	['ptt.flip', { text: 'FLIP\nA/B' }],
 
 	['tct.mode=read', { text: 'READ' }],
 	['tct.mode=generate', { text: 'GENERATE' }],
