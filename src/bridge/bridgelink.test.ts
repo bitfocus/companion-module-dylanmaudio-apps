@@ -231,11 +231,16 @@ describe('BridgeLink', () => {
 			laneName: 'cold',
 			baseChannel: 12,
 			retryMs: 50,
-			stripCounts: { input: 2, mute_group: 1 },
+			strips: [
+				{ type: 'input', index: 1 },
+				{ type: 'input', index: 2 },
+				{ type: 'dca', index: 3 },
+				{ type: 'mute_group', index: 1 },
+			],
 			syncScope: 'names_state',
 		})
 		wide.start()
-		await waitFor(() => queriesTo(bridge).length >= 3, 'queries')
+		await waitFor(() => queriesTo(bridge).length >= 4, 'queries')
 		const queries = queriesTo(bridge)
 		expect(queries).toContainEqual({
 			op: 'query',
@@ -247,6 +252,13 @@ describe('BridgeLink', () => {
 			op: 'query',
 			type: 'input',
 			index: 2,
+			fields: ['name', 'colour', 'mute', 'fader'],
+		})
+		// every type in scope, not only inputs: scopedStrips counts these, stripCountsFor left them undefined
+		expect(queries).toContainEqual({
+			op: 'query',
+			type: 'dca',
+			index: 3,
 			fields: ['name', 'colour', 'mute', 'fader'],
 		})
 		// a mute group has no fader to ask about
@@ -262,7 +274,7 @@ describe('BridgeLink', () => {
 			laneName: 'cold-names',
 			baseChannel: 12,
 			retryMs: 50,
-			stripCounts: { input: 1 },
+			strips: [{ type: 'input', index: 1 }],
 			syncScope: 'names',
 		})
 		names.start()
@@ -277,7 +289,7 @@ describe('BridgeLink', () => {
 			laneName: 'cold-none',
 			baseChannel: 12,
 			retryMs: 50,
-			stripCounts: { input: 4 },
+			strips: [{ type: 'input', index: 1 }],
 			syncScope: 'none',
 		})
 		quiet.start()

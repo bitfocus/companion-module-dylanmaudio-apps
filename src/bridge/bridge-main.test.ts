@@ -101,18 +101,34 @@ describe('bridge mode through DliveInstance', () => {
 	it('action → cmd → optimistic state → variables, and the snapshot seeds variables', async () => {
 		const host = new Host()
 		const inst = new DliveInstance(host.context)
-		await inst.init({ ...DEFAULT_CONFIG, bridgeHost: '127.0.0.1', bridgePort: port, inputs: 16 })
+		// core types only: the cold sync then covers inputs, mains, DCAs and mute groups
+		await inst.init({
+			...DEFAULT_CONFIG,
+			bridgeHost: '127.0.0.1',
+			bridgePort: port,
+			inputs: 16,
+			extendedTypes: false,
+		})
 		await waitFor(() => inst.link.isOk, 'ok')
 		await waitFor(() => host.vars['fader_lv_ch7'] === 101, 'snapshot variable')
 		await host.run('fader', { type: 'input', index: 1, db: '+1', fade: 0 })
 		await waitFor(() => host.vars['fader_lv_ch1'] === 109, 'optimistic variable')
 		expect(host.vars['fader_ch1']).toBe('+0.9')
-		expect((cmds.at(-1) as { intent: { op: string; level: number } }).intent).toEqual({
+		// the connect-time cold sync is queries; the fader is the one we ran
+		const intents = () => cmds.map((c) => (c as { intent: Record<string, unknown> }).intent)
+		expect(
+			intents()
+				.filter((i) => i.op === 'fader')
+				.at(-1),
+		).toEqual({
 			op: 'fader',
 			type: 'input',
 			index: 1,
 			level: 109,
 		})
+		// cold sync covers every type in scope, not only inputs
+		await waitFor(() => intents().some((i) => i.op === 'query' && i.type === 'dca'), 'dca query')
+		expect(intents().some((i) => i.op === 'query' && i.type === 'input')).toBe(true)
 		await inst.destroy()
 	})
 

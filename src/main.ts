@@ -25,7 +25,7 @@ import { buildPresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import {
 	allVariableValues,
-	stripCountsFor,
+	scopedStrips,
 	valuesForPaths,
 	variableDefinitions,
 	type MetaValues,
@@ -325,7 +325,7 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 			token: this.config.bridgeToken || undefined,
 			laneName: this.label,
 			baseChannel: this.config.baseChannel,
-			stripCounts: stripCountsFor({ inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }),
+			strips: scopedStrips({ inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }),
 			syncScope: this.config.syncScope,
 		})
 	}

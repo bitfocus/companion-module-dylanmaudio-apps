@@ -21,7 +21,6 @@
 
 import { EventEmitter } from 'node:events'
 import { CHANNEL_TABLE, isChannelType, type ChannelRef, type Colour } from '../protocol/channels.js'
-import { CHANNEL_TYPES, type ChannelType } from '../protocol/channels.js'
 import { encode, toHex } from '../protocol/encode.js'
 import { intentSocket, type ConsoleEvent, type Intent } from '../protocol/intents.js'
 import { ConsoleState, CONNECTION_PATH } from '../state/model.js'
@@ -67,8 +66,8 @@ export interface BridgeLinkOptions {
 	laneName: string
 	/** used only until /info reports the bridge's own base channel */
 	baseChannel: number
-	/** strips to ask the bridge about on connect, by type (variables.ts stripCountsFor) */
-	stripCounts?: Partial<Record<ChannelType, number>>
+	/** the strips to ask the bridge about on connect — variables.ts scopedStrips, the same set that gets variables */
+	strips?: ChannelRef[]
 	/** how much of each strip to ask for; 'none' asks for nothing */
 	syncScope?: SyncScope
 	retryMs?: number
@@ -369,17 +368,13 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 	 */
 	private async coldSync(scope: SyncScope, why: string): Promise<void> {
 		if (scope === 'none') return
-		const counts = this.opts.stripCounts ?? {}
 		const wide = scope !== 'names'
-		const jobs: { type: ChannelType; index: number; fields: string[] }[] = []
-		for (const type of CHANNEL_TYPES) {
-			for (let index = 1; index <= (counts[type] ?? 0); index++) {
-				const fields = ['name', 'colour']
-				if (wide) fields.push('mute')
-				if (wide && type !== 'mute_group') fields.push('fader')
-				jobs.push({ type, index, fields })
-			}
-		}
+		const jobs = (this.opts.strips ?? []).map(({ type, index }) => {
+			const fields = ['name', 'colour']
+			if (wide) fields.push('mute')
+			if (wide && type !== 'mute_group') fields.push('fader')
+			return { type, index, fields }
+		})
 		if (jobs.length === 0) return
 		let next = 0
 		const lane = async (): Promise<void> => {
