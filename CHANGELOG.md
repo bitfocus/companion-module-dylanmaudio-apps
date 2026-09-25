@@ -1,6 +1,6 @@
 # Changelog — dylanmaudio-apps (Bitfocus Companion module)
 
-## Unreleased
+## 1.0.2 — 2026-09
 
 - **Names and colours arrive on connect.** The desk announces only what
   changes, and the bridge's mirror starts empty, so a connection made
