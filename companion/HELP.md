@@ -174,21 +174,22 @@ preset, and the variables `$(tlt:talk_active)`, `$(tlt:talk_flash_armed)`,
 
 ## Connection settings
 
-| Setting                                       | Notes                                                                                                                                             |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App                                           | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above          |
-| Talk flash rate / cooldown / TALK page number | Talk Light only — see _Talk flash_ above                                                                                                          |
-| MIDI Bridge address / port / token            | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion                                                                               |
-| Bridge app control port                       | 0 = the standard 8770, on the same address. For Run, Restart and Auto-reconnect (MIDI Bridge 1.1.9+)                                              |
-| Console firmware                              | Not detectable over MIDI; shown in `$(dlive:firmware)`                                                                                            |
-| Inputs in use / extended types                | Bounds the variable grid and the preset library                                                                                                   |
-| Scene Go / Next / Previous                    | The CC number + value you assigned on the console. 0/0 = not assigned                                                                             |
-| Console Actions map                           | `cc,value,Name` per line. Optional when a firmware 2.1x show file is loaded — Actions import automatically; manual lines win on the same CC/value |
-| Show file                                     | Loaded on the connection's own **show file page**, not here — see below                                                                           |
-| Show file path (advanced)                     | Only useful when the file sits somewhere this sandboxed module can read. An uploaded show wins over it                                            |
-| Scene names (manual)                          | `scene,Name` per line; overrides the show file                                                                                                    |
-| Show send levels in dB                        | On by default. The send law was measured on hardware and matches the fader law exactly; turn off for raw 0–127                                    |
-| Preamp gain range                             | Sources disagree; pick what matches your screen                                                                                                   |
+| Setting                                       | Notes                                                                                                                                                                                                 |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App                                           | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above                                                              |
+| Talk flash rate / cooldown / TALK page number | Talk Light only — see _Talk flash_ above                                                                                                                                                              |
+| MIDI Bridge address / port / token            | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion                                                                                                                                   |
+| Bridge app control port                       | 0 = the standard 8770, on the same address. For Run, Restart and Auto-reconnect (MIDI Bridge 1.1.9+)                                                                                                  |
+| Console firmware                              | Not detectable over MIDI; shown in `$(dlive:firmware)`                                                                                                                                                |
+| Inputs in use / extended types                | Bounds the variable grid and the preset library                                                                                                                                                       |
+| Ask the console for                           | What the bridge fetches for every strip on connect, and on **Resync**. The desk announces only what _changes_, so without this a connection made mid-show shows nothing until someone moves something |
+| Scene Go / Next / Previous                    | The CC number + value you assigned on the console. 0/0 = not assigned                                                                                                                                 |
+| Console Actions map                           | `cc,value,Name` per line. Optional when a firmware 2.1x show file is loaded — Actions import automatically; manual lines win on the same CC/value                                                     |
+| Show file                                     | Loaded on the connection's own **show file page**, not here — see below                                                                                                                               |
+| Show file path (advanced)                     | Only useful when the file sits somewhere this sandboxed module can read. An uploaded show wins over it                                                                                                |
+| Scene names (manual)                          | `scene,Name` per line; overrides the show file                                                                                                                                                        |
+| Show send levels in dB                        | On by default. The send law was measured on hardware and matches the fader law exactly; turn off for raw 0–127                                                                                        |
+| Preamp gain range                             | Sources disagree; pick what matches your screen                                                                                                                                                       |
 
 ### Status colours
 
@@ -277,7 +278,8 @@ Global: `scene_current`, `scene_current_name`, `scene_name_<n>`,
 ## Presets
 
 Template groups per channel type — mute buttons that take the strip's
-name and colour and go red when muted; level buttons showing the dB
+name and colour, and turn a deep red marked **MUTED** when muted (the
+word matters: a channel coloured red on the desk is red either way); level buttons showing the dB
 value with ±1 dB nudges; scene recall buttons that show the scene's name
 from the show and light when current;
 GO / Next / Previous; named Console Actions; a status button.

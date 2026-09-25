@@ -59,3 +59,21 @@ describe('scene presets', () => {
 		expect((presets.status as Json).style.text).toContain('$(dylanmaudio_dLive:firmware)')
 	})
 })
+
+describe('MIDI Bridge presets', () => {
+	const { presets } = buildPresets(ctxWith([]), { inputs: 8, extendedTypes: false })
+
+	it("every text has a size: 'auto' picked a different one per label", () => {
+		for (const [id, p] of Object.entries(presets)) {
+			const style = (p as Json).style as Json | undefined
+			if (style?.text !== undefined) expect(style.size, id).not.toBe('auto')
+		}
+	})
+
+	it('a muted key says MUTED, in a red no desk colour uses', () => {
+		const mute = presets.mute_input as Json
+		const fb = (mute.feedbacks as Json[]).find((f) => f.feedbackId === 'mute') as Json
+		expect((fb.style as Json).text).toContain('MUTED')
+		expect((fb.style as Json).bgcolor).toBe(0x5a0000)
+	})
+})

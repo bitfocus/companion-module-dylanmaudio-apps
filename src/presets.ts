@@ -18,6 +18,13 @@ const DARK = combineRgb(20, 20, 20)
 const RED = combineRgb(200, 0, 0)
 const GREEN = combineRgb(0, 160, 60)
 const BLUE = combineRgb(30, 60, 200)
+/** muted: darker than any desk colour, so a red channel still reads as muted */
+const MUTED = combineRgb(90, 0, 0)
+
+// One size per shape, never 'auto': auto picks a size per label, so a row of
+// channel names came out at half a dozen different sizes.
+const NAME = '18' as const
+const PAIR = '14' as const
 
 const expr = (value: string) => ({ isExpression: true as const, value })
 
@@ -56,11 +63,16 @@ export function buildPresets(
 		presets[`mute_${type}`] = {
 			type: 'simple',
 			name: `${label} mute`,
-			style: { text: '$(local:name)', textExpression: false, size: 'auto', color: WHITE, bgcolor: DARK },
+			style: { text: '$(local:name)', textExpression: false, size: NAME, color: WHITE, bgcolor: DARK },
 			localVariables: [chVar, nameVar(type)],
 			feedbacks: [
 				{ feedbackId: 'channel_colour', options: { type, index: expr('$(local:ch)'), text: true } },
-				{ feedbackId: 'mute', options: { type, index: expr('$(local:ch)') }, style: { bgcolor: RED, color: WHITE } },
+				{
+					feedbackId: 'mute',
+					options: { type, index: expr('$(local:ch)') },
+					// says it as well as colours it: a red channel is red either way
+					style: { bgcolor: MUTED, color: WHITE, text: '$(local:name)\\nMUTED', size: PAIR },
+				},
 			],
 			steps: [{ down: [{ actionId: 'mute', options: { type, index: expr('$(local:ch)'), mode: 'toggle' } }], up: [] }],
 		}
@@ -85,7 +97,7 @@ export function buildPresets(
 		presets[`level_${type}`] = {
 			type: 'simple',
 			name: `${label} level`,
-			style: { text: '$(local:name)\\n$(local:db)', textExpression: false, size: 'auto', color: WHITE, bgcolor: DARK },
+			style: { text: '$(local:name)\\n$(local:db)', textExpression: false, size: PAIR, color: WHITE, bgcolor: DARK },
 			localVariables: [chVar, nameVar(type), dbVar(type)],
 			feedbacks: [{ feedbackId: 'channel_colour', options: { type, index: expr('$(local:ch)'), text: true } }],
 			steps: [
@@ -98,7 +110,7 @@ export function buildPresets(
 			style: {
 				text: '$(local:name)\\n▲ $(local:db)',
 				textExpression: false,
-				size: 'auto',
+				size: PAIR,
 				color: WHITE,
 				bgcolor: DARK,
 			},
@@ -121,7 +133,7 @@ export function buildPresets(
 			style: {
 				text: '$(local:name)\\n▼ $(local:db)',
 				textExpression: false,
-				size: 'auto',
+				size: PAIR,
 				color: WHITE,
 				bgcolor: DARK,
 			},
@@ -182,7 +194,7 @@ export function buildPresets(
 		name: 'Recall scene',
 		// The name comes through a feedback local variable, as a strip's name does: a variable
 		// named from another ($(conn:scene_name_$(local:sc))) doesn't resolve in Companion.
-		style: { text: '$(local:sc)\\n$(local:name)', textExpression: false, size: 'auto', color: WHITE, bgcolor: DARK },
+		style: { text: '$(local:sc)\\n$(local:name)', textExpression: false, size: PAIR, color: WHITE, bgcolor: DARK },
 		localVariables: [
 			{ variableType: 'simple', variableName: 'sc', startupValue: 1 },
 			{
@@ -207,14 +219,14 @@ export function buildPresets(
 	presets.scene_next = {
 		type: 'simple',
 		name: 'Next',
-		style: { text: 'Next ▶', size: 'auto', color: WHITE, bgcolor: BLUE },
+		style: { text: 'Next ▶', size: NAME, color: WHITE, bgcolor: BLUE },
 		feedbacks: [],
 		steps: [{ down: [{ actionId: 'scene_next', options: {} }], up: [] }],
 	}
 	presets.scene_prev = {
 		type: 'simple',
 		name: 'Previous',
-		style: { text: '◀ Prev', size: 'auto', color: WHITE, bgcolor: BLUE },
+		style: { text: '◀ Prev', size: NAME, color: WHITE, bgcolor: BLUE },
 		feedbacks: [],
 		steps: [{ down: [{ actionId: 'scene_prev', options: {} }], up: [] }],
 	}
@@ -223,7 +235,7 @@ export function buildPresets(
 		name: 'Current scene display',
 		style: {
 			text: `$(${ctx.label}:scene_current)\\n$(${ctx.label}:scene_current_name)`,
-			size: 'auto',
+			size: PAIR,
 			color: WHITE,
 			bgcolor: DARK,
 		},
@@ -260,7 +272,7 @@ export function buildPresets(
 			presets[id] = {
 				type: 'simple',
 				name: e.name,
-				style: { text: e.name, size: 'auto', color: BLACK, bgcolor: combineRgb(230, 200, 60) },
+				style: { text: e.name, size: PAIR, color: BLACK, bgcolor: combineRgb(230, 200, 60) },
 				feedbacks: [],
 				steps: [{ down: [{ actionId: 'console_action', options: { entry: `${e.cc}/${e.value}` } }], up: [] }],
 			}
@@ -272,7 +284,7 @@ export function buildPresets(
 	presets.status = {
 		type: 'simple',
 		name: 'Console status',
-		style: { text: `dLive\\n$(${ctx.label}:firmware)`, size: 'auto', color: WHITE, bgcolor: RED },
+		style: { text: `dLive\\n$(${ctx.label}:firmware)`, size: PAIR, color: WHITE, bgcolor: RED },
 		feedbacks: [{ feedbackId: 'connected', options: {}, style: { bgcolor: GREEN, color: WHITE } }],
 		steps: [{ down: [{ actionId: 'resync', options: {} }], up: [] }],
 	}

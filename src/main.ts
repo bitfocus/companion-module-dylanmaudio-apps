@@ -25,6 +25,7 @@ import { buildPresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import {
 	allVariableValues,
+	stripCountsFor,
 	valuesForPaths,
 	variableDefinitions,
 	type MetaValues,
@@ -149,7 +150,11 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 		const bridgeChanged =
 			prev.bridgeHost !== this.config.bridgeHost ||
 			prev.bridgePort !== this.config.bridgePort ||
-			prev.bridgeToken !== this.config.bridgeToken
+			prev.bridgeToken !== this.config.bridgeToken ||
+			// the cold sync is built from these, and the link holds them
+			prev.syncScope !== this.config.syncScope ||
+			prev.inputs !== this.config.inputs ||
+			prev.extendedTypes !== this.config.extendedTypes
 		if (bridgeChanged) {
 			this.link.stop()
 			this.link.removeAllListeners()
@@ -320,6 +325,8 @@ export default class DliveInstance extends InstanceBase<ModuleSchema> implements
 			token: this.config.bridgeToken || undefined,
 			laneName: this.label,
 			baseChannel: this.config.baseChannel,
+			stripCounts: stripCountsFor({ inputs: this.config.inputs, extendedTypes: this.config.extendedTypes }),
+			syncScope: this.config.syncScope,
 		})
 	}
 

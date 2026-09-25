@@ -30,6 +30,10 @@ interface Cmd {
 	body: Record<string, unknown>
 }
 
+/** A cmd carries its intent in an envelope: { v, lane_id, intent: { op, … } }. */
+const queriesTo = (bridge: MockBridge): Record<string, unknown>[] =>
+	bridge.cmds.map((c) => c.body.intent as Record<string, unknown>).filter((intent) => intent?.op === 'query')
+
 class MockBridge {
 	server!: Server
 	port = 0
@@ -217,6 +221,69 @@ describe('BridgeLink', () => {
 		expect(link.state.strip({ type: 'input', index: 5 }).level).toBe(95)
 		expect(link.state.currentScene).toBe(12)
 		expect(link.bridgeBaseChannel).toBe(1)
+	})
+
+	it('cold sync: asks about every strip in scope, and only for what the scope covers', async () => {
+		link.stop()
+		const wide = new BridgeLink({
+			host: '127.0.0.1',
+			port: bridge.port,
+			laneName: 'cold',
+			baseChannel: 12,
+			retryMs: 50,
+			stripCounts: { input: 2, mute_group: 1 },
+			syncScope: 'names_state',
+		})
+		wide.start()
+		await waitFor(() => queriesTo(bridge).length >= 3, 'queries')
+		const queries = queriesTo(bridge)
+		expect(queries).toContainEqual({
+			op: 'query',
+			type: 'input',
+			index: 1,
+			fields: ['name', 'colour', 'mute', 'fader'],
+		})
+		expect(queries).toContainEqual({
+			op: 'query',
+			type: 'input',
+			index: 2,
+			fields: ['name', 'colour', 'mute', 'fader'],
+		})
+		// a mute group has no fader to ask about
+		expect(queries).toContainEqual({ op: 'query', type: 'mute_group', index: 1, fields: ['name', 'colour', 'mute'] })
+		wide.stop()
+	})
+
+	it('cold sync: names asks for names and colours; none asks for nothing', async () => {
+		link.stop()
+		const names = new BridgeLink({
+			host: '127.0.0.1',
+			port: bridge.port,
+			laneName: 'cold-names',
+			baseChannel: 12,
+			retryMs: 50,
+			stripCounts: { input: 1 },
+			syncScope: 'names',
+		})
+		names.start()
+		await waitFor(() => queriesTo(bridge).length > 0, 'query')
+		expect(queriesTo(bridge)).toEqual([{ op: 'query', type: 'input', index: 1, fields: ['name', 'colour'] }])
+		names.stop()
+
+		bridge.cmds = []
+		const quiet = new BridgeLink({
+			host: '127.0.0.1',
+			port: bridge.port,
+			laneName: 'cold-none',
+			baseChannel: 12,
+			retryMs: 50,
+			stripCounts: { input: 4 },
+			syncScope: 'none',
+		})
+		quiet.start()
+		await waitFor(() => quiet.isOk, 'ok')
+		expect(queriesTo(bridge)).toEqual([])
+		quiet.stop()
 	})
 
 	it('reports failure (not ok) when the bridge is up but the console is down', async () => {

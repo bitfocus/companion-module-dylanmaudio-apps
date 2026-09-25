@@ -43,9 +43,11 @@ describe('show import in the connection config', () => {
 
 	it('offers no direct-console fields — this module is bridge-only', () => {
 		const ids = GetConfigFields().map((f) => f.id)
-		for (const gone of ['transport', 'host', 'port', 'surfaceHost', 'baseChannel', 'syncScope']) {
+		for (const gone of ['transport', 'host', 'port', 'surfaceHost', 'baseChannel']) {
 			expect(ids).not.toContain(gone)
 		}
 		expect(ids).toContain('bridgeHost')
+		// syncScope stays: it now says how much of each strip the bridge is asked for on connect
+		expect(ids).toContain('syncScope')
 	})
 })

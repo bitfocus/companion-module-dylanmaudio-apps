@@ -1,5 +1,19 @@
 # Changelog — dylanmaudio-apps (Bitfocus Companion module)
 
+## Unreleased
+
+- **Names and colours arrive on connect.** The desk announces only what
+  changes, and the bridge's mirror starts empty, so a connection made
+  mid-show showed nothing until someone moved something. The module now
+  asks the bridge for each strip in scope on connect and on **Resync**,
+  through its `query` op. **Ask the console for** in the connection
+  settings chooses how much: names and colours, plus mutes and levels, or
+  nothing.
+- **Muted keys say MUTED**, on a red darker than any desk colour — a
+  channel coloured red read the same muted or not.
+- **One text size per key shape** across the MIDI Bridge presets, instead
+  of a size picked per label.
+
 ## 1.0.1 — 2026-09
 
 - `legacyIds` is empty, as the module review asked for a first release.

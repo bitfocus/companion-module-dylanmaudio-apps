@@ -306,6 +306,21 @@ function bridgeFields(ctx: ConfigFieldContext): SomeCompanionConfigField[] {
 			default: true,
 		},
 		{
+			type: 'dropdown',
+			id: 'syncScope',
+			label: 'Ask the console for',
+			tooltip:
+				'On connect, and when you press Resync, the bridge fetches this much for every strip. The desk announces only what changes, so without it a connection made mid-show shows nothing until someone moves something.',
+			width: 12,
+			default: 'names_state',
+			choices: [
+				{ id: 'names', label: 'Names and colours' },
+				{ id: 'names_state', label: 'Names, colours, mutes and levels' },
+				{ id: 'all', label: 'Everything the bridge can fetch' },
+				{ id: 'none', label: 'Nothing — wait for the desk to announce a change' },
+			],
+		},
+		{
 			type: 'static-text',
 			id: 'infoScene',
 			width: 12,
