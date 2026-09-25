@@ -21,7 +21,7 @@
 		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
 	},
-	"legacyIds": ["dylanmaudio"],
+	"legacyIds": [],
 	"manufacturer": "dylanmaudio",
 	"products": ["dLive MIDI Bridge", "Talk Light Trigger", "Pilot Tone Trigger", "Time Code Tool", "Console Control"],
 	"keywords": ["Audio", "Mixer", "dLive", "MIDI", "Talkback", "Playback failover", "LTC", "MTC", "Show control"]

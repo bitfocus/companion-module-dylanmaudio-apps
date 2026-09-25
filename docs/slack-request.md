@@ -6,6 +6,10 @@ was answered are kept at the foot of this file.
 
 ## Status
 
+- **24 Sep 2026.** The portal reviewed v1.0.0 and asked for one change:
+  `legacyIds` must be empty on a first release. Emptied, and resubmitted as
+  v1.0.1. The development rig had already moved to the new id by hand, so
+  nothing depended on the old one.
 - **17 Sep 2026.** The reviewers answered the request and suggested the
   id `dylanmaudio-apps`, so the module now uses it: in the manifest, the
   package name and the TALK page import. `legacyIds: ["dylanmaudio"]`
@@ -56,9 +60,8 @@ module-checks.yaml, 8 Sep 2026).
   running app to the front.
 - **The first public version is 1.0.0**, as Bitfocus's versioning guide
   asks.
-- **`legacyIds` is `["dylanmaudio"]`.** Pre-release builds used that id,
-  so connections made with them migrate. `dylanmaudio-dlive` was never
-  published and isn't listed.
+- **`legacyIds` is empty.** The review asked for that on a first release,
+  and nothing was ever published under the old id.
 - **The id is `dylanmaudio-apps`**, as the reviewers suggested (17 Sep).
 
 ### Worth doing first (optional)
