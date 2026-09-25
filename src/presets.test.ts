@@ -70,6 +70,13 @@ describe('MIDI Bridge presets', () => {
 		}
 	})
 
+	it('sizes desk text to fit a full-length name, whole', () => {
+		// a dLive name is up to 8 characters and a fixed size breaks rather than shrinks
+		for (const id of ['mute_input', 'level_input', 'scene_recall']) {
+			expect((presets[id] as Json).style.size, id).toBeLessThanOrEqual(10)
+		}
+	})
+
 	it('a muted key says MUTED, in a red no desk colour uses', () => {
 		const mute = presets.mute_input as Json
 		const fb = (mute.feedbacks as Json[]).find((f) => f.feedbackId === 'mute') as Json

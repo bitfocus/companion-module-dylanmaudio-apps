@@ -11,8 +11,10 @@
   nothing.
 - **Muted keys say MUTED**, on a red darker than any desk colour — a
   channel coloured red read the same muted or not.
-- **One text size per key shape** across the MIDI Bridge presets, instead
-  of a size picked per label.
+- **One text size for desk text** across the MIDI Bridge presets — names,
+  levels, scene names, MUTED — chosen to hold a full-length dLive name
+  whole. `auto` picked a size per label, and a fixed size that is too big
+  breaks the word rather than shrinking it ("Maste r").
 
 ## 1.0.1 — 2026-09
 
