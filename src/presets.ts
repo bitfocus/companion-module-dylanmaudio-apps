@@ -17,7 +17,6 @@ const BLACK = combineRgb(0, 0, 0)
 const DARK = combineRgb(20, 20, 20)
 const RED = combineRgb(200, 0, 0)
 const GREEN = combineRgb(0, 160, 60)
-const BLUE = combineRgb(30, 60, 200)
 /** muted: darker than any desk colour, so a red channel still reads as muted */
 const MUTED = combineRgb(90, 0, 0)
 
@@ -212,27 +211,9 @@ export function buildPresets(
 		],
 		steps: [{ down: [{ actionId: 'scene_recall', options: { scene: expr('$(local:sc)') } }], up: [] }],
 	}
-	presets.scene_go = {
-		type: 'simple',
-		name: 'GO',
-		style: { text: 'GO', size: '24', color: WHITE, bgcolor: GREEN },
-		feedbacks: [],
-		steps: [{ down: [{ actionId: 'scene_go', options: {} }], up: [] }],
-	}
-	presets.scene_next = {
-		type: 'simple',
-		name: 'Next',
-		style: { text: 'Next ▶', size: LABEL, color: WHITE, bgcolor: BLUE },
-		feedbacks: [],
-		steps: [{ down: [{ actionId: 'scene_next', options: {} }], up: [] }],
-	}
-	presets.scene_prev = {
-		type: 'simple',
-		name: 'Previous',
-		style: { text: '◀ Prev', size: LABEL, color: WHITE, bgcolor: BLUE },
-		feedbacks: [],
-		steps: [{ down: [{ actionId: 'scene_prev', options: {} }], up: [] }],
-	}
+	// No GO / Next / Previous keys (#55): they are Surface-socket CCs, and the
+	// bridge's one console connection is the MixRack's. The actions remain, and
+	// say so, for anyone whose buttons already carry them.
 	presets.scene_current = {
 		type: 'simple',
 		name: 'Current scene display',
@@ -252,8 +233,8 @@ export function buildPresets(
 			{
 				id: 'scene_nav',
 				type: 'simple',
-				name: 'Cue list',
-				presets: ['scene_go', 'scene_next', 'scene_prev', 'scene_current'],
+				name: 'Current scene',
+				presets: ['scene_current'],
 			},
 			{
 				id: 'scene_recall_t',

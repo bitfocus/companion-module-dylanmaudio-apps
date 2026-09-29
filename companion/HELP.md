@@ -247,9 +247,16 @@ without re-exporting anything.
 
 Mute · Fader (dB, ±dB, raw, all with optional timed fade) · Send level ·
 Main / DCA / mute-group / mix assign · Preamp gain / pad / 48 V · PEQ
-band · HPF · Set name / colour · Scene recall · Scene Go / Next /
-Previous · Cue-list recall · Console Action (named, from the map) ·
-Surface CC · UFX key / scale · Refresh strip · Resync · Reload show file.
+band · HPF · Set name / colour · Scene recall · Console Action (named,
+from the map) · UFX key / scale · Refresh strip · Resync · Reload show
+file.
+
+**Scene Go / Next / Previous, Cue-list recall and Surface CC refuse.**
+They belong on the console's second socket, the Surface (51328), and the
+MIDI Bridge has one console connection: the MixRack's. There the same
+bytes mean something else — on the Virtual dLive, "cue list: recall ID
+11" recalled **scene 12** — so the module says so in the log and sends
+nothing. Use **Scene recall**, which is a MixRack message and works.
 
 Channel numbers accept expressions, so `$(custom:channel)` in the Number
 field works for "selected channel" layouts.
@@ -281,8 +288,8 @@ Template groups per channel type — mute buttons that take the strip's
 name and colour, and turn a deep red marked **MUTED** when muted (the
 word matters: a channel coloured red on the desk is red either way); level buttons showing the dB
 value with ±1 dB nudges; scene recall buttons that show the scene's name
-from the show and light when current;
-GO / Next / Previous; named Console Actions; a status button.
+from the show and light when current; the current scene; named Console
+Actions; a status button.
 
 ## Limitations (protocol, not the module)
 
@@ -290,6 +297,8 @@ GO / Next / Previous; named Console Actions; a status button.
   MIDI.
 - **No scene names over MIDI** — hence the show-file import.
 - **SoftKeys cannot be triggered by MIDI**; use a console Action instead.
+- **No cue list, and no scene Go / Next / Previous.** Those live on the
+  console's Surface socket, which the MIDI Bridge does not open.
 - **Preamps are addressed by socket**, not channel; the patch is not
   readable.
 - Some "Get" queries (preamp, mix assign) are extrapolated from the

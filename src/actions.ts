@@ -547,26 +547,28 @@ export function buildActions(ctx: ModuleContext): CompanionActionDefinitions<Act
 			callback: run((o) => link.send({ op: 'scene', scene: Math.round(num(o, 'scene', 1)) })),
 		},
 		scene_go: {
-			name: 'Scene: Go (cue list)',
-			description: 'Uses the Go CC configured in the connection settings',
+			name: 'Scene: Go (cue list) — needs the Surface socket',
+			description: `Cue-list Go ${SURFACE_ONLY}. Scene recall works: it is a MixRack message.`,
 			options: [],
 			callback: run(() => surfaceCc(ctx, ctx.config.goCc, ctx.config.goValue, 'Go')),
 		},
 		scene_next: {
-			name: 'Scene: Next',
+			name: 'Scene: Next — needs the Surface socket',
+			description: `Cue-list Next ${SURFACE_ONLY}.`,
 			options: [],
 			callback: run(() => surfaceCc(ctx, ctx.config.nextCc, ctx.config.nextValue, 'Next')),
 		},
 		scene_prev: {
-			name: 'Scene: Previous',
+			name: 'Scene: Previous — needs the Surface socket',
+			description: `Cue-list Previous ${SURFACE_ONLY}.`,
 			options: [],
 			callback: run(() => surfaceCc(ctx, ctx.config.prevCc, ctx.config.prevValue, 'Previous')),
 		},
 		cue_list_recall: {
-			name: 'Cue list: recall by ID',
-			description: 'Surface-only. Cue-list IDs start at 0.',
+			name: 'Cue list: recall by ID — needs the Surface socket',
+			description: `Cue-list recall ${SURFACE_ONLY}: on the Virtual dLive, ID 11 recalled scene 12. Use "Scene: recall" instead.`,
 			options: [{ type: 'number', id: 'id', label: 'Recall ID (0–1999)', default: 0, min: 0, max: 1999 }],
-			callback: run((o) => link.send({ op: 'cue_list', id: Math.round(num(o, 'id')) })),
+			callback: run(() => refuseSurface(ctx, 'Cue list: recall by ID')),
 		},
 
 		// ------------------------------------------------------------ console Actions
@@ -601,15 +603,13 @@ export function buildActions(ctx: ModuleContext): CompanionActionDefinitions<Act
 			),
 		},
 		surface_cc: {
-			name: 'Send CC to the Surface',
-			description: 'Any user-assigned Surface control (Go/Next/Prev, UFX unit parameters…)',
+			name: 'Send CC to the Surface — needs the Surface socket',
+			description: `Any user-assigned Surface control (Go/Next/Prev, UFX unit parameters…). It ${SURFACE_ONLY}.`,
 			options: [
 				{ type: 'number', id: 'cc', label: 'Control number', default: 0, min: 0, max: 127 },
 				{ type: 'number', id: 'value', label: 'Value', default: 127, min: 0, max: 127 },
 			],
-			callback: run((o) =>
-				link.send({ op: 'surface_cc', cc: Math.round(num(o, 'cc')), value: Math.round(num(o, 'value')) }),
-			),
+			callback: run(() => refuseSurface(ctx, 'Send CC to the Surface')),
 		},
 		ufx_key: {
 			name: 'UFX global key',
@@ -675,15 +675,24 @@ export function buildActions(ctx: ModuleContext): CompanionActionDefinitions<Act
 	return defs
 }
 
-function surfaceCc(ctx: ModuleContext, cc: number, value: number, what: string): void {
-	if (cc === 0 && value === 0) {
-		ctx.log(
-			'warn',
-			`Scene ${what} is not configured — set its CC and value in the connection settings (they must match Utility → Control → MIDI on the console)`,
-		)
-		return
-	}
-	ctx.link.send({ op: 'surface_cc', cc, value })
+/**
+ * Surface-socket work the bridge cannot do (#55). Cue-list recall and the
+ * scene CCs belong on the console's Surface socket, 51328. The MIDI Bridge
+ * has one console connection — the MixRack's — and these bytes mean
+ * something else there: verified on the Virtual dLive, 28 Sept 2026, where
+ * "cue list: recall ID 11" recalled SCENE 12. Refusing is the only safe
+ * answer until the bridge grows a Surface socket; a show must not jump to
+ * the wrong scene because a key said "cue".
+ */
+const SURFACE_ONLY =
+	"needs the console's Surface socket, which the MIDI Bridge doesn't have. Its one console connection is the MixRack's, where these bytes recall a scene instead — so nothing was sent"
+
+function refuseSurface(ctx: ModuleContext, what: string): void {
+	ctx.log('warn', `${what} ${SURFACE_ONLY}`)
+}
+
+function surfaceCc(ctx: ModuleContext, _cc: number, _value: number, what: string): void {
+	refuseSurface(ctx, `Scene ${what}`)
 }
 
 export { type ChannelType }
