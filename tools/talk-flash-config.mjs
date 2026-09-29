@@ -116,7 +116,9 @@ function layers(text, bg, fg) {
 			color: v(fg),
 			halign: v('center'),
 			valign: v('center'),
-			fontsize: v(100),
+			// 36, not 100: at 100 Companion breaks the word rather than shrinking it,
+			// and every TALK key read 'TAL / K' (#57). 36 holds four letters on one line.
+			fontsize: v(36),
 			fontsizeAllowShrink: v(true),
 			font: v('companion-sans'),
 			outlineColor: v(4278190080),

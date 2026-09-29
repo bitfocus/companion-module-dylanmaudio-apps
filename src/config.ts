@@ -273,9 +273,9 @@ function bridgeFields(ctx: ConfigFieldContext): SomeCompanionConfigField[] {
 		{
 			type: 'textinput',
 			id: 'bridgeToken',
-			label: 'Bridge token (LAN access only)',
+			label: 'Bridge token',
 			tooltip:
-				'Leave empty on the same machine. When the bridge exposes its API on the LAN it shows a token — paste it here.',
+				'Leave this empty. The bridge listens on its own Mac only; the field is here for the LAN access it will grow later, which will show a token to paste in.',
 			width: 12,
 			default: '',
 		},

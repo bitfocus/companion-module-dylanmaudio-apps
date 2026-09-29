@@ -141,6 +141,17 @@ describe('styled keys', () => {
 		expect(presets.p_bridge__look_run).toBeDefined()
 	})
 
+	it("the Run key's label holds RUNNING whole, not RUN / NING", () => {
+		// Companion breaks a word that doesn't fit rather than shrinking it (#54)
+		for (const app of APPS) {
+			const run = looksFor(app).presets[`p_${app}__look_run`]
+			if (!run) continue
+			const label = (run.elements as Json[]).find((e) => e.id === 'label') as Json
+			const ofKey = ((label.fontsize as number) * (label.height as number)) / 100 / 1.2
+			expect('RUNNING'.length * 0.7 * ofKey, app).toBeLessThanOrEqual(92.5)
+		}
+	})
+
 	it('the Talk Light and Pilot Tone meters mark their thresholds; Time Code has none', () => {
 		const line = (app: AppId) =>
 			(looksFor(app).presets[`p_${app}__look_meter`].elements as Json[]).find((e) => e.id === 'threshold')

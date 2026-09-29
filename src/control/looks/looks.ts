@@ -126,7 +126,8 @@ export function buildLookPresets(
 						borderWidth: 4,
 						borderColor: PALETTE.textMuted,
 					},
-					text('label', 'RUN', ring, { fontsize: 40, weight: 'bold' }),
+					// sized for RUNNING, the longer of the two words it carries (#54)
+					text('label', 'RUN', ring, { fontsize: fitSize('RUNNING', ring.h), weight: 'bold' }),
 				],
 				[
 					whenOn(`${app}.running`, [

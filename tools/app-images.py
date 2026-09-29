@@ -142,7 +142,8 @@ PTT = {
     "ok": "#5C8FD6",
     "lost": "#E85C5C",
     "latched": "#E8A94A",
-    "degraded": "#D9743F",
+    # purple since app 1.1.3, to match the status tile; it was orange (#59)
+    "degraded": "#A16AE8",
 }
 
 

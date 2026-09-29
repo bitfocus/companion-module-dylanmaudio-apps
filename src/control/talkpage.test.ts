@@ -62,6 +62,18 @@ describe('the importable TALK page', () => {
 		expect(talk.every((k) => k.feedbacks[0].connectionId === CONNECTION_ID)).toBe(true)
 	})
 
+	it('every TALK key holds the word whole, not TAL / K', () => {
+		// a fixed size doesn't shrink: too big and Companion breaks the word (#57)
+		const keys = Object.values(built.pages[String(FILE_PAGE)].controls as Json).flatMap((row) =>
+			Object.values(row as Json),
+		) as Json[]
+		for (const key of keys) {
+			const text = (key.style.layers as Json[]).find((l) => l.id === 'text0') as Json
+			const ofKey = ((text.fontsize.value as number) * (text.height.value as number)) / 100 / 1.2
+			expect((text.text.value as string).length * 0.7 * ofKey, text.text.value as string).toBeLessThanOrEqual(92.5)
+		}
+	})
+
 	it('the triggers read only variables this module defines', () => {
 		const text = JSON.stringify(built.triggers)
 		const used = [...text.matchAll(/\$\(tlt:([a-z_]+)\)/g)].map((m) => m[1])

@@ -77,7 +77,7 @@ export const METER = {
 		base: hex('#5c8fd6'),
 		states: {
 			key: 'ptt.state',
-			colours: { lost: hex('#e85c5c'), latched: hex('#e8a94a'), degraded: hex('#d9743f') },
+			colours: { lost: hex('#e85c5c'), latched: hex('#e8a94a'), degraded: hex('#a16ae8') },
 		},
 	},
 	tct: {

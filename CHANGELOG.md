@@ -1,5 +1,23 @@
 # Changelog — dylanmaudio-apps (Bitfocus Companion module)
 
+## 1.0.3 — 2026-09
+
+- **Cue list, Scene Go / Next / Previous and Send CC to the Surface now
+  refuse.** They belong on the console's Surface socket, which the MIDI
+  Bridge doesn't open; its one console connection is the MixRack's, where
+  the same bytes mean something else. Verified on the Virtual dLive: "cue
+  list: recall ID 11" recalled **scene 12**. They now send nothing and say
+  why, in the log and in their own names, rather than moving the show to
+  the wrong scene. **Scene recall** is unaffected. The GO / Next /
+  Previous presets are gone.
+- The styled **Run** key read "RUN / NING" while an app ran; its label now
+  holds the word whole.
+- Every key on the importable **TALK page** read "TAL / K"; same fix.
+- Pilot Tone's **Signal Degraded** is purple on the menu-bar icon and the
+  level meter, matching the app since 1.1.3 (it was orange).
+- The **bridge token** setting and the help no longer speak of LAN access:
+  the bridge listens on its own Mac.
+
 ## 1.0.2 — 2026-09
 
 - **Names and colours arrive on connect.** The desk announces only what

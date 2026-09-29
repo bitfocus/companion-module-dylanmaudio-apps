@@ -31,8 +31,9 @@ bridge**, and this module inherits them.
 2. On the console: **Utility → Control → MIDI**, mode **On** (not
    Secure), Global MIDI Send and Receive enabled.
 3. In this connection, set the bridge address — `127.0.0.1` when
-   Companion runs on the same machine as the bridge. The token is only
-   needed if the bridge is exposing its API over the LAN.
+   Companion runs on the same machine as the bridge — which today is the
+   only way, as the bridge listens on its own Mac. Leave the token empty;
+   it is for the LAN access the bridge will grow later.
 
 ### The bridge app's own controls
 
@@ -178,7 +179,7 @@ preset, and the variables `$(tlt:talk_active)`, `$(tlt:talk_flash_armed)`,
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App                                           | Which dylanmaudio app this connection controls. **MIDI Bridge** is the dLive console, and everything below; the others are covered above                                                              |
 | Talk flash rate / cooldown / TALK page number | Talk Light only — see _Talk flash_ above                                                                                                                                                              |
-| MIDI Bridge address / port / token            | Where the bridge is. 127.0.0.1 : 8765 when it runs beside Companion                                                                                                                                   |
+| MIDI Bridge address / port / token            | Where the bridge is: 127.0.0.1 : 8765, beside Companion. The bridge listens on its own Mac, so the token stays empty until it grows LAN access                                                        |
 | Bridge app control port                       | 0 = the standard 8770, on the same address. For Run, Restart and Auto-reconnect (MIDI Bridge 1.1.9+)                                                                                                  |
 | Console firmware                              | Not detectable over MIDI; shown in `$(dlive:firmware)`                                                                                                                                                |
 | Inputs in use / extended types                | Bounds the variable grid and the preset library                                                                                                                                                       |
