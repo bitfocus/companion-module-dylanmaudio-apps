@@ -47,6 +47,12 @@
         "kind": "action"
       },
       {
+        "id": "ptt.send_now",
+        "label": "Send now — the side that wasn't delivered",
+        "kind": "action",
+        "enabled_when": "ptt.send_now_available"
+      },
+      {
         "id": "ptt.tone",
         "label": "Tone generator",
         "kind": "toggle",
@@ -121,6 +127,29 @@
         "key": "ptt.integrity_errors",
         "label": "Integrity errors",
         "type": "number"
+      },
+      {
+        "key": "ptt.link",
+        "label": "MIDI Bridge link",
+        "type": "enum",
+        "values": [
+          "connected",
+          "no_console",
+          "reconnecting",
+          "not_responding",
+          "absent",
+          "direct"
+        ]
+      },
+      {
+        "key": "ptt.unreachable",
+        "label": "Not reaching the console",
+        "type": "bool"
+      },
+      {
+        "key": "ptt.send_now_available",
+        "label": "Send now available",
+        "type": "bool"
       }
     ]
   },
@@ -132,7 +161,10 @@
     "ptt.tone_running": false,
     "ptt.level_db": null,
     "ptt.threshold_db": -45.0,
-    "ptt.integrity_errors": 0
+    "ptt.integrity_errors": 0,
+    "ptt.link": "absent",
+    "ptt.unreachable": false,
+    "ptt.send_now_available": false
   },
   "refusals": {
     "ptt.reset": "Signal is still below threshold — stay on backup."
@@ -289,6 +321,34 @@
       "calls": [
         [
           "ptt.flip",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "cmd.send_now.noop_when_nothing_waiting",
+      "request": {
+        "method": "POST",
+        "path": "/ctl/v1/cmd",
+        "body": {
+          "v": 1,
+          "cid": "k10",
+          "control": "ptt.send_now"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "v": 1,
+          "ok": true,
+          "cid": "k10",
+          "control": "ptt.send_now",
+          "value": null
+        }
+      },
+      "calls": [
+        [
+          "ptt.send_now",
           null
         ]
       ]
