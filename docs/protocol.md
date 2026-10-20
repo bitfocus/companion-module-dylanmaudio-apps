@@ -16,6 +16,14 @@ Sources, in order of trust:
 | `single` | One implementation / the PDF only |
 | `inferred` | Extrapolated from a pattern, or synthesised for a test — not observed on a desk |
 
+A search result is not a source. On 20 Oct 2026 this file briefly
+carried an explanation of the connection limit that traced back to a
+sub-agent's summary of a support article nobody could open (it returns
+403). It read like a citation and was not one. If a claim here can't be
+traced to a capture in `sim/captures/`, a document someone has actually
+read, or an implementation someone has actually looked at, it doesn't
+belong in the table above.
+
 Firmware is undetectable over this protocol (the SysEx header carries
 `01 00` on every version); the user tells us.
 
