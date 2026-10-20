@@ -71,6 +71,24 @@
         "key": "tlt.quiet_scene",
         "label": "Quiet scene",
         "type": "number"
+      },
+      {
+        "key": "tlt.link",
+        "label": "MIDI Bridge link",
+        "type": "enum",
+        "values": [
+          "connected",
+          "no_console",
+          "reconnecting",
+          "not_responding",
+          "absent",
+          "direct"
+        ]
+      },
+      {
+        "key": "tlt.unreachable",
+        "label": "Not reaching the console",
+        "type": "bool"
       }
     ]
   },
@@ -80,7 +98,9 @@
     "tlt.level_db": -120.0,
     "tlt.threshold_db": -18.0,
     "tlt.talk_scene": 500,
-    "tlt.quiet_scene": 499
+    "tlt.quiet_scene": 499,
+    "tlt.link": "absent",
+    "tlt.unreachable": false
   },
   "refusals": {},
   "cases": [

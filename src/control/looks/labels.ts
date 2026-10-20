@@ -75,6 +75,8 @@ const looks: [string, KeyLook][] = [
 	['ptt.reset', { text: 'RESET' }],
 	['ptt.tone', { text: 'TONE\nGEN' }],
 	['ptt.flip', { text: 'FLIP\nA/B' }],
+	// a side that wasn't delivered within the late window (train 8a)
+	['ptt.send_now', { text: 'SEND\nNOW' }],
 
 	['tct.mode=read', { text: 'READ' }],
 	['tct.mode=generate', { text: 'GENERATE' }],

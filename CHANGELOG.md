@@ -41,6 +41,19 @@ CompanionPi, through a tunnel today and the apps' LAN access later.
   answer, unreachable, address not found), and no longer say "this Mac"
   about an app on another one. An IPv6 bridge address makes a valid URL.
 
+Talk Light Trigger and Pilot Tone Trigger 1.3.0 reach the console
+through MIDI Bridge. These keys come from the apps' own catalogues, so
+they appear once the apps are updated:
+
+- **MIDI Bridge link**, a variable and a feedback on each app's
+  connection: connected, no console, reconnecting, not responding,
+  absent, or direct (the app's old Direct TCP or MIDI port).
+- **Not reaching the console**, lit while the app is armed and can't
+  reach the console: the app's red tile.
+- **Pilot Tone: Send now** (a SEND NOW key). It sends the failover or
+  signal OK that wasn't delivered within 10 seconds, and is enabled only
+  while one is waiting.
+
 ## 1.0.3 — 2026-09
 
 - **Cue list, Scene Go / Next / Previous and Send CC to the Surface now

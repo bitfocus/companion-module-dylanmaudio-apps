@@ -278,10 +278,13 @@ describe('Pilot Tone Trigger (fixtures/control/ptt.json)', () => {
 		expect(Object.keys(buildControlFeedbacks(pc, () => null)).sort()).toEqual(
 			[
 				'st_ptt__failback_mode__is',
+				'st_ptt__link__is',
 				'st_ptt__reset_available',
 				'st_ptt__running',
+				'st_ptt__send_now_available',
 				'st_ptt__state__is',
 				'st_ptt__tone_running',
+				'st_ptt__unreachable',
 			].sort(),
 		)
 		const vars = Object.keys(buildControlVariables(pc)).filter((k) => !k.startsWith('ctl_'))
@@ -290,11 +293,14 @@ describe('Pilot Tone Trigger (fixtures/control/ptt.json)', () => {
 				'failback_mode',
 				'integrity_errors',
 				'level_db',
+				'link',
 				'reset_available',
 				'running',
+				'send_now_available',
 				'state',
 				'threshold_db',
 				'tone_running',
+				'unreachable',
 			].sort(),
 		)
 		const { presets } = buildControlPresets(pc, 'ptt')
@@ -305,6 +311,7 @@ describe('Pilot Tone Trigger (fixtures/control/ptt.json)', () => {
 				'p_ptt__failback_mode__latch',
 				'p_ptt__reset',
 				'p_ptt__run',
+				'p_ptt__send_now',
 				'p_ptt__show',
 				'p_ptt__threshold__down',
 				'p_ptt__threshold__show',
@@ -329,7 +336,12 @@ describe('Talk Light Trigger (fixtures/control/tlt.json)', () => {
 	})
 
 	it('talk state is a feedback, and the threshold a readout with ±1 dB nudges', () => {
-		expect(Object.keys(buildControlFeedbacks(tc, () => null)).sort()).toEqual(['st_tlt__running', 'st_tlt__talk__is'])
+		expect(Object.keys(buildControlFeedbacks(tc, () => null)).sort()).toEqual([
+			'st_tlt__link__is',
+			'st_tlt__running',
+			'st_tlt__talk__is',
+			'st_tlt__unreachable',
+		])
 		const { presets } = buildControlPresets(tc, 'tlt')
 		expect(JSON.stringify(presets.p_tlt__threshold__show)).toContain('$(tlt:threshold_db)')
 		expect(Object.keys(presets)).toEqual(
