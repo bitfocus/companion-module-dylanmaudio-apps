@@ -306,6 +306,49 @@ value with ±1 dB nudges; scene recall buttons that show the scene's name
 from the show and light when current; the current scene; named Console
 Actions; a status button.
 
+## Running alongside other modules and apps
+
+**The desk counts connections, and it does not tell you when you run
+out.** This matters because almost nothing says so.
+
+A dLive MixRack serves **four** simultaneous MIDI clients. A fifth is
+accepted and then never served — no error, no disconnection — so it sits
+there looking connected while nothing it sends arrives. Four is measured;
+A&H's "40 connections" figure is their network application count, a
+different budget on a different port.
+
+What costs a slot:
+
+| What you run | MixRack slots |
+|---|---|
+| **This module, through MIDI Bridge** | **one, shared.** Console Control, a DAW and every dylanmaudio app ride the same bridge connection |
+| A direct dLive Companion module aimed at the MixRack | one each |
+| `allenheath-dlive-ilive` | one, plus A&H's network port 51321 |
+| A direct module aimed at the **Surface** (51328) | probably none — unmeasured |
+| A&H Director | unmeasured |
+
+That shared connection is the point of the bridge: you can add apps
+without spending slots, and one MIDI monitor attributes every message to
+whatever sent it.
+
+**If you also run a direct dLive module**, budget for it. The useful
+combination today is `allenheath-dlive` 1.1.0 or later aimed at the
+**Surface** for scene Go / Next / Previous — which this module can't do,
+because the bridge opens the MixRack socket (see Limitations) — while
+console control stays on the bridge. Two things aimed at the MixRack is
+two slots for work one could do.
+
+**Symptom to recognise:** a connection that went green, stayed green, and
+changes nothing. On a dLive that is the fifth client. Close something
+else and it starts working, with no other change.
+
+**On other Allen & Heath consoles:** an SQ serves exactly **one** MIDI
+connection, so a direct SQ Companion module takes the only slot and locks
+out MIDI Bridge, Console Control and every dylanmaudio app for as long as
+it holds it. If you use the bridge on an SQ, disable Companion's own
+Allen & Heath SQ connection for that desk. (This module drives a dLive
+only — see "What this module is".)
+
 ## Limitations (protocol, not the module)
 
 - **No metering.** Meters live on A&H's proprietary network protocol, not
