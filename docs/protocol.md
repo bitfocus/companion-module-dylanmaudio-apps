@@ -34,16 +34,24 @@ Both sockets are plain MIDI byte streams: no framing, no length prefix.
 TCP splits packets arbitrarily — the decoder is a byte-at-a-time state
 machine.
 
-**The MixRack serves four simultaneous MIDI clients** (`hardware`,
-measured 18 Oct 2026). This file said 40 until 20 Oct 2026, quoting A&H
-— but that 40 is their *network application* count, a different budget
-on a different port, and never applied to MIDI over TCP. Four is the
-number that matters here, and the fifth client is **accepted and then
-never served**: no error, no close, so it looks connected and goes
-quiet. The measurement is recorded in
-`docs/research-other-modules.md` §5.3; the open questions — whether
-Director takes a slot, whether a client aimed at the Surface costs a
-MixRack slot — are for the next desk session.
+**How many clients the MixRack serves is open, and it is not obviously
+40.** A&H's documentation says 40 per endpoint (`single`), which this
+file stated flatly until 20 Oct 2026. One observation contradicts it
+(`hardware`, 18 Oct 2026, recorded in the monorepo's
+`docs/status/console.md`): with four clients already connected, a fifth
+was **accepted at TCP and not served** — a Get sent 0.3 s after
+connecting was neither answered nor relayed within 2 s.
+
+That is a single probe, and its own record names an alternative it did
+not rule out: a new connection may simply need longer before the desk
+starts serving it. So treat four as a *measured lower bound on where
+trouble starts*, not as the limit, and don't quote 40 either. The
+re-test — a longer wait, with the operator present — is outstanding,
+along with whether Director takes a slot and whether a client aimed at
+the Surface costs a MixRack slot.
+
+What matters for us either way: a client that is accepted and not served
+**looks connected and goes quiet**, with no error and no close.
 
 Multiple clients on multiple hosts do work within that budget, and have
 been run against one console in the field — Companion and A&H's own

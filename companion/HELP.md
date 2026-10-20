@@ -311,15 +311,16 @@ Actions; a status button.
 **The desk counts connections, and it does not tell you when you run
 out.** This matters because almost nothing says so.
 
-A dLive MixRack serves **four** simultaneous MIDI clients. A fifth is
-accepted and then never served — no error, no disconnection — so it sits
-there looking connected while nothing it sends arrives. Four is measured;
-A&H's "40 connections" figure is their network application count, a
-different budget on a different port.
+On a dLive, a client beyond the desk's limit is **accepted and then not
+served** — no error, no disconnection — so it sits there looking
+connected while nothing it sends arrives. We have seen that happen with
+four already connected. A&H's documentation says 40 per endpoint; our
+own measurement disagrees and is not yet conclusive, so plan for "fewer
+than you'd think" rather than any particular number.
 
 What costs a slot:
 
-| What you run | MixRack slots |
+| What you run | MixRack connections |
 |---|---|
 | **This module, through MIDI Bridge** | **one, shared.** Console Control, a DAW and every dylanmaudio app ride the same bridge connection |
 | A direct dLive Companion module aimed at the MixRack | one each |
@@ -339,7 +340,7 @@ console control stays on the bridge. Two things aimed at the MixRack is
 two slots for work one could do.
 
 **Symptom to recognise:** a connection that went green, stayed green, and
-changes nothing. On a dLive that is the fifth client. Close something
+changes nothing. On a dLive that is one client too many. Close something
 else and it starts working, with no other change.
 
 **On other Allen & Heath consoles:** an SQ serves exactly **one** MIDI
