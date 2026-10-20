@@ -1,30 +1,35 @@
 # companion-module-dylanmaudio — working notes for Claude
 
 Bitfocus Companion module for the **dylanmaudio apps**, one connection per
-app: dLive MIDI Bridge, Talk Light Trigger, Pilot Tone Trigger, Time Code
-Tool, Console Control. TypeScript, MIT, Companion 5.0+
+app: MIDI Bridge, Talk Light Trigger, Pilot Tone Trigger, Time Code Tool,
+Console Control. TypeScript, MIT, Companion 5.0+
 (`@companion-module/base` 2.1). See [README.md](README.md) for the full
 layout and [companion/HELP.md](companion/HELP.md) for the user-facing guide.
 
 ## Where this sits
 
-Part of **dylanmaudio** — Dylan Mitrovich's commercial macOS software for
-live sound, aimed at Allen & Heath dLive consoles, sold through
+Part of **dylanmaudio** — Dylan Mitrovich's commercial software for live
+sound, aimed at Allen & Heath dLive consoles, sold through
 `store.dylanmaudio.com` (Lemon Squeezy) with product pages on
-`dylanmaudio.com`. Sibling repos:
+`dylanmaudio.com`. Mac first, no longer Mac only: MIDI Bridge has run on
+Windows since 1.4.5, and Talk Light, Pilot Tone and Time Code Tool are in
+testing there. Sibling repos:
 
-- **`dLive-Utility-Apps`** — the monorepo of five macOS menu-bar apps this
-  module drives. It is where MIDI Bridge, the Client API and the control API
-  live, and it is the authority for the API fixtures below.
+- **`dLive-Utility-Apps`** — the monorepo of five menu-bar apps this module
+  drives. It is where MIDI Bridge, the Client API and the control API live,
+  and it is the authority for the API fixtures below.
 - **`automation-pack`** — the older Reaper-based dLive Automation Pack
   (v0.9.x beta, NDA). Console Control supersedes it.
 - **`dylanmaudio.github.io`** — the marketing site.
 
 MIDI Bridge, Talk Light Trigger, Pilot Tone Trigger and Time Code Tool are
-public; Console Control and **this module** are not. So there is no
-shipped-version compatibility to preserve here — changes ship at launch —
-but the apps this module drives *are* in customers' hands, and the control
-API it depends on is theirs to keep working.
+public, and so is **this module**: it has been on the Bitfocus store since
+25 September. Console Control is not yet. So there *is* shipped-version
+compatibility to preserve. Action and option ids are frozen — a rename
+breaks the buttons someone already built, and any change to one needs an
+upgrade script in `src/upgrades.ts`. Adding ids is free; changing them is
+not. The apps this module drives are in customers' hands too, and the
+control API it depends on is theirs to keep working.
 
 ## The rule that matters here
 
