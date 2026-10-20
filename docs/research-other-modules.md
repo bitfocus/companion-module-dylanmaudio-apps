@@ -606,7 +606,9 @@ Names and colours on an SQ need the MixPad port (#228); MIDI has none.
 - **#248:** a census of other clients from relayed traffic, shown as "at least one other". Lone NRPN triples, relayed Gets and each module's connect burst would be fingerprinted from **our own captures** of those modules running against the Virtual dLive, not from their source.
 - **#253:** a slot table in HELP, plus the advice "for Go / Next / Prev today, add `allenheath-dlive` 1.1.0+ aimed at the **Surface**, and keep console control on the bridge".
 - **#249:** our own opt-in Surface socket.
-- **#261:** correct `docs/protocol.md` §1. It still says each endpoint accepts "up to 40 simultaneous TCP connections".
+- **#261:** correct `docs/protocol.md` §1. It still says each endpoint accepts "up to 40 simultaneous TCP connections" and that nothing needs to arbitrate for the socket.
+  - **A&H documents 40 per endpoint.** Measured on a MixRack (firmware 2.12), four are served, and a fifth is accepted, then silent. **The gap is unexplained.**
+  - Plan for four.
 - **Measure at the next dLive session (~27 Oct):**
   - Does Director take a MIDI slot?
   - Does a Surface client take a MixRack slot?
