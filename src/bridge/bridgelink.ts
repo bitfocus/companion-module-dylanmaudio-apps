@@ -93,6 +93,20 @@ class Refused extends Error {}
 /** The stream's cursor fell off the bridge's event ring. */
 class Resync extends Error {}
 
+/**
+ * The console family from /info, or null for a dLive.
+ *
+ * An absent block means a dLive: every bridge in the field before 1.4.90
+ * sends none, and this module must go on driving those exactly as before.
+ */
+export function foreignFamily(info: Record<string, unknown>): string | null {
+	const block = info.console
+	if (typeof block !== 'object' || block === null) return null
+	const { driver, title } = block as { driver?: unknown; title?: unknown }
+	if (typeof driver !== 'string' || driver === '' || driver === 'dlive') return null
+	return typeof title === 'string' && title !== '' ? title : driver
+}
+
 function errorOf(json: Record<string, unknown>): { code?: string; message?: string } {
 	const e = json.error
 	if (typeof e !== 'object' || e === null) return {}
@@ -130,6 +144,12 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 	private started = false
 	private laneId: string | null = null
 	private caps: BridgeCaps = {}
+	/**
+	 * The console family the bridge is driving, when this module doesn't know it.
+	 * `null` means a dLive, which is the only family this version drives.
+	 */
+	private foreignFamily: string | null = null
+	private saidForeign = false
 	private baseN: number
 	/** the bridge's own base channel, adopted from /info */
 	public bridgeBaseChannel: number | undefined
@@ -200,6 +220,7 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 			this.emit('log', 'debug', `Bridge lane not up; dropped ${intent.op}`)
 			return false
 		}
+		if (this.refuseForeign(intent.op)) return false
 		void this.postIntent(intent)
 		const local = localEvent(intent)
 		if (local) {
@@ -228,6 +249,7 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 	}
 
 	fadeTo(ref: ChannelRef, toLv: number, durationMs: number): void {
+		if (this.refuseForeign('fade')) return
 		if (durationMs <= 0 || this.caps.fade === false) {
 			this.send({ op: 'fader', type: ref.type, index: ref.index, level: toLv })
 			return
@@ -344,6 +366,13 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 			return
 		}
 		// Module-side encoding, bridge-side transmission: op "raw".
+		if (this.caps.raw === false) {
+			if (!this.unsupportedOps.has('raw')) {
+				this.unsupportedOps.add('raw')
+				this.emit('log', 'info', `${intent.op}: this bridge doesn't accept raw bytes, so it isn't being sent`)
+			}
+			return
+		}
 		let bytes: number[]
 		try {
 			bytes = encode(this.baseN, intent)
@@ -415,6 +444,7 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 		// mid-show has nothing until it asks once. Keep the cold sync.
 		// See the session report §3.2 and §5.
 		this.caps = info.json.capabilities ?? {}
+		this.foreignFamily = foreignFamily(info.json)
 
 		// 2. hello
 		await this.hello()
@@ -495,6 +525,18 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 	}
 
 	private applyConsoleState(): void {
+		if (this.foreignFamily) {
+			// Not a transport failure: the link is fine and the desk is the wrong one.
+			this.setStatus(
+				'failure',
+				`MIDI Bridge is driving a ${this.foreignFamily}; this module version drives a dLive only`,
+			)
+			if (this.state.connected) {
+				this.state.connected = false
+				this.emit('changed', [CONNECTION_PATH])
+			}
+			return
+		}
 		const console_ = this.consoleState ?? 'connected'
 		if (console_ === 'connected') {
 			if (this._status !== 'ok') {
@@ -632,6 +674,36 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 			default:
 				return // midi feed etc. — the monitor's business, not ours
 		}
+	}
+
+	/**
+	 * This version drives a dLive and nothing else (#SQ). Every op the module
+	 * sends carries dLive meaning: the raw path is literally dLive bytes, and
+	 * the first-class ops carry a dLive value scale — a fader is 0–127, which
+	 * on a 14-bit desk is not "unity" but near silence. So a console family
+	 * this version doesn't know gets nothing at all, rather than the half of
+	 * the vocabulary that happens to travel.
+	 *
+	 * Refusing is the reversible choice: a later version turns a family on
+	 * without breaking a button anyone built. Half-driving a desk cannot be
+	 * taken back once someone's show depends on it.
+	 */
+	private refuseForeign(op: string): boolean {
+		const family = this.foreignFamily
+		if (!family) return false
+		if (!this.saidForeign) {
+			this.saidForeign = true
+			this.emit(
+				'log',
+				'warn',
+				`MIDI Bridge is driving a ${family}, and this module version drives a dLive only. ` +
+					`Nothing is being sent to the console: a dLive fader value means a different level on a ${family}. ` +
+					`Watch for a module version that lists ${family} support.`,
+			)
+		} else {
+			this.emit('log', 'debug', `Not sending ${op}: the bridge is driving a ${family}`)
+		}
+		return true
 	}
 
 	private setStatus(status: LinkStatus, message: string | undefined): void {

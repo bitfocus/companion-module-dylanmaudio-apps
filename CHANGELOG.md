@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **This version drives a dLive, and refuses any other console.** MIDI
+  Bridge is learning to drive other Allen & Heath desks. Every op this
+  module sends carries dLive meaning — the raw path is dLive bytes, and
+  even a plain fader is 0–127, which on a 14-bit desk is not unity but
+  near silence. So when the bridge reports a console family this version
+  doesn't know, the module sends nothing at all, says which desk it found
+  in the log, and shows it in the connection status. It doesn't move its
+  own keys either: a refused press leaves the button where it was.
+  A bridge that reports no console family is a dLive, so every bridge in
+  the field today is driven exactly as before. Refusing is the reversible
+  choice — a later version can turn a console on without breaking a
+  button anyone has built.
+- `capabilities.raw: false` from the bridge is now honoured: the raw path
+  stays quiet instead of sending bytes the bridge will reject.
+
 Ground work for Companion on another machine than the apps (#106): a
 CompanionPi, through a tunnel today and the apps' LAN access later.
 

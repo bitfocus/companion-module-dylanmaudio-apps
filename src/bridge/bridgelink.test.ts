@@ -58,6 +58,10 @@ class MockBridge {
 	infos = 0
 	/** a dead link: nothing is answered and nothing more reaches the stream, but nothing closes */
 	frozen = false
+	/** /info's console block (1.4.90+). Absent is a bridge older than that, i.e. a dLive. */
+	console: Record<string, unknown> | null = null
+	/** what /info reports as the API's capabilities */
+	caps: Record<string, unknown> = { raw: true, fade: true, query: true, fader_db: true, send_level: false }
 	private held: ServerResponse[] = []
 	private sse: ServerResponse | null = null
 
@@ -108,7 +112,8 @@ class MockBridge {
 				session: 'main',
 				api: 1,
 				base_channel: this.baseChannel,
-				capabilities: { raw: true, fade: true, query: true, fader_db: true, send_level: false },
+				capabilities: this.caps,
+				...(this.console ? { console: this.console } : {}),
 				seq: this.seq,
 			})
 			return
@@ -570,5 +575,95 @@ describe('BridgeLink', () => {
 		expect(deltaToEvent('input.5.fader', { lv: 300 })).toBeUndefined()
 		expect(deltaToEvent('connection.console', 'connected')).toBeUndefined()
 		expect(deltaToEvent('scene.current', 12)).toEqual({ kind: 'scene', scene: 12 })
+	})
+
+	describe('a console this version does not drive', () => {
+		const connectTo = async (consoleBlock: Record<string, unknown> | null) => {
+			link.stop()
+			bridge.console = consoleBlock
+			bridge.cmds.length = 0
+			const fresh = new BridgeLink({
+				host: '127.0.0.1',
+				port: bridge.port,
+				laneName: 'sq',
+				baseChannel: 1,
+				retryMs: 50,
+			})
+			const logs: string[] = []
+			fresh.on('log', (level, msg) => logs.push(`${level}: ${msg}`))
+			fresh.start()
+			await waitFor(() => bridge.infos > 0 && bridge.hellos.length > 0, 'connect')
+			return { fresh, logs }
+		}
+
+		it('sends nothing to the console, and says why once', async () => {
+			const { fresh, logs } = await connectTo({ driver: 'sq', title: 'SQ' })
+			// a fader is the dangerous one: 0-127 is unity on a dLive and near
+			// silence on the SQ's 14-bit scale, so it must not travel at all
+			expect(fresh.send({ op: 'fader', type: 'input', index: 5, level: 107 })).toBe(false)
+			expect(fresh.send({ op: 'mute', type: 'input', index: 5, on: true })).toBe(false)
+			expect(fresh.send({ op: 'scene', scene: 3 })).toBe(false)
+			fresh.fadeTo({ type: 'input', index: 5 }, 107, 2000)
+			await new Promise((r) => setTimeout(r, 120))
+			expect(bridge.cmds.filter((c) => (c.body.intent as { op?: string }).op !== 'query')).toEqual([])
+			const warnings = logs.filter((l) => l.startsWith('warn:') && l.includes('SQ'))
+			expect(warnings).toHaveLength(1)
+			expect(warnings[0]).toContain('drives a dLive only')
+			fresh.stop()
+		})
+
+		it('does not move its own mirror either', async () => {
+			const { fresh } = await connectTo({ driver: 'sq', title: 'SQ' })
+			const changed: string[][] = []
+			fresh.on('changed', (paths) => changed.push(paths))
+			fresh.send({ op: 'mute', type: 'input', index: 5, on: true })
+			await new Promise((r) => setTimeout(r, 50))
+			// a refused press that still lit the key would be the #106 bug again
+			expect(changed.flat()).not.toContain('mute/input/5')
+			fresh.stop()
+		})
+
+		it('says so in the connection status', async () => {
+			const { fresh } = await connectTo({ driver: 'sq', title: 'SQ' })
+			await waitFor(() => fresh.status === 'failure', 'status')
+			fresh.stop()
+		})
+
+		it('a bridge with no console block is a dLive, and is driven as before', async () => {
+			const { fresh } = await connectTo(null)
+			expect(fresh.send({ op: 'mute', type: 'input', index: 5, on: true })).toBe(true)
+			await waitFor(() => bridge.cmds.some((c) => (c.body.intent as { op?: string }).op === 'mute'), 'mute')
+			fresh.stop()
+		})
+
+		it('driver dlive is driven as before', async () => {
+			const { fresh } = await connectTo({ driver: 'dlive', title: 'dLive' })
+			expect(fresh.send({ op: 'fader', type: 'input', index: 5, level: 107 })).toBe(true)
+			await waitFor(() => bridge.cmds.some((c) => (c.body.intent as { op?: string }).op === 'fader'), 'fader')
+			fresh.stop()
+		})
+
+		it('honours capabilities.raw: false without refusing the rest', async () => {
+			link.stop()
+			bridge.console = null
+			bridge.caps = { raw: false, fade: true, query: true }
+			bridge.cmds.length = 0
+			const fresh = new BridgeLink({
+				host: '127.0.0.1',
+				port: bridge.port,
+				laneName: 'noraw',
+				baseChannel: 1,
+				retryMs: 50,
+			})
+			fresh.start()
+			await waitFor(() => bridge.hellos.length > 0, 'connect')
+			// first-class still travels; the raw path doesn't
+			fresh.send({ op: 'mute', type: 'input', index: 5, on: true })
+			fresh.send({ op: 'dca_assign', type: 'input', index: 5, dca: 1, on: true })
+			await waitFor(() => bridge.cmds.some((c) => (c.body.intent as { op?: string }).op === 'mute'), 'mute')
+			await new Promise((r) => setTimeout(r, 80))
+			expect(bridge.cmds.some((c) => (c.body.intent as { op?: string }).op === 'raw')).toBe(false)
+			fresh.stop()
+		})
 	})
 })

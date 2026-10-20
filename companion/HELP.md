@@ -1,8 +1,8 @@
 # dylanmaudio apps
 
-One module, five macOS apps, one connection per app: **dLive MIDI
-Bridge**, **Talk Light Trigger**, **Pilot Tone Trigger**, **Time Code
-Tool** and **Console Control**. Pick the app in the connection's
+One module, five apps, one connection per app: **MIDI Bridge**, **Talk
+Light Trigger**, **Pilot Tone Trigger**, **Time Code Tool** and **Console
+Control**. Pick the app in the connection's
 settings. Through MIDI Bridge you control an Allen & Heath dLive **and
 see what it is doing**: mutes, fader levels, names, colours and the
 current scene come back from the desk and drive feedbacks, variables and
@@ -13,11 +13,18 @@ the keys.
 ## What this module is
 
 The MIDI Bridge connection controls an Allen & Heath dLive **through the
-dLive MIDI Bridge application**. The bridge owns the connection to the console;
+MIDI Bridge application**. The bridge owns the connection to the console;
 this module attaches to it as a named lane, alongside anything else you
 have connected — a DAW, Console Control, other apps — all sharing one
 console connection and one MIDI monitor that attributes every message
 to the app that sent it.
+
+**This version drives an Allen & Heath dLive, and only a dLive.** MIDI
+Bridge can drive other Allen & Heath consoles, and when it is connected
+to one this module sends nothing to it and says so: a dLive fader value
+means a different level on another desk, so half-driving one is worse
+than not driving it. Support for other consoles comes in a later module
+version, which will say so here.
 
 **It does not connect to a console directly.** You need the MIDI Bridge
 app (v1.1 or later) running and connected to your desk. Console address,
