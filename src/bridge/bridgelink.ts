@@ -98,6 +98,26 @@ class Resync extends Error {}
  *
  * An absent block means a dLive: every bridge in the field before 1.4.90
  * sends none, and this module must go on driving those exactly as before.
+ *
+ * WHEN THIS OPENS UP (the rule, agreed with the bridge, Client API spec
+ * §1b, MIDI Bridge 1.4.91). A family may be driven when
+ *
+ *     console.driver === 'dlive' || console.verified_on_desk === true
+ *
+ * `verified_on_desk` is the driver's own flag — the same one the bridge
+ * uses to decide which families its Console drop-down offers — and it is
+ * **deliberately absent on the dLive**, which is verified by definition.
+ * So absence means opposite things either side of that check: on a dLive
+ * "verified", on anything else "not yet". Write the condition above, not
+ * `if (!verified_on_desk) refuse`, which would refuse the dLive.
+ *
+ * Per capability where they differ: `console.names.verified` says whether
+ * names from that source were checked on a desk, so showing names wants
+ * `names.available && names.verified`. `names.available: false` means keep
+ * the names already on the keys, not blank them.
+ *
+ * Opening a family is additive and breaks nobody; half-driving a desk
+ * cannot be taken back. See the CHANGELOG entry for 1.1.0.
  */
 export function foreignFamily(info: Record<string, unknown>): string | null {
 	const block = info.console
