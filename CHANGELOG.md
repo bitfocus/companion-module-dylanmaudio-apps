@@ -1,6 +1,10 @@
 # Changelog — dylanmaudio-apps (Bitfocus Companion module)
 
-## Unreleased
+## 1.1.0 — 2026-10
+
+A dLive release. It also makes sure it stays one: MIDI Bridge can now
+drive other Allen & Heath consoles, and this version refuses them rather
+than half-driving them.
 
 - **This version drives a dLive, and refuses any other console.** MIDI
   Bridge is learning to drive other Allen & Heath desks. Every op this
