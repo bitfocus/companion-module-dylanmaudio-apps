@@ -64,6 +64,31 @@ Hardware-free end-to-end: `src/e2e.test.ts` spawns
 `python3 -m sim.virtual_console` from `~/Documents/GitHub/dLive Utility Apps`
 (override with `DLIVE_SIM_ROOT`) and drives the real module against it.
 
+## Test builds, for testers
+
+Versions **x.y.90 and up are test builds**: built from a topic branch,
+never submitted to Bitfocus, loaded by hand. The multi-console line is
+`1.1.90`+ from `topic/multi-console-apps`, and it ships as `1.2.0` once
+MIDI Bridge 1.5.0 is public. The same convention as the apps' own `.90`
+builds.
+
+To load one into Companion:
+
+1. `corepack yarn package` — it writes `dylanmaudio-apps-<version>.tgz`
+   in the repo root. Give a test build a version Companion can tell
+   apart from the store's, e.g. `1.1.90`, or it will sit on top of the
+   released one.
+2. In Companion, open **Modules** and use **Import module package**,
+   pointing it at that `.tgz`. The release from the store stays
+   installed alongside it.
+3. Per connection: edit it, then **Module Version → Change → Advanced
+   Options → Module**, and pick the test version. Switching back to the
+   released version is the same path, so a test build is always
+   reversible.
+
+A test build never replaces the store's copy, and a connection keeps
+whichever version it was pointed at.
+
 ## Direct mode is a test harness, not a feature
 
 `ConsoleLink` and `TcpTransport` implement the console protocol over TCP
