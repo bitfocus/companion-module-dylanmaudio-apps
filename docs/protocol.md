@@ -32,13 +32,31 @@ dLive Utility Apps repo said 51326; that was wrong and is corrected —
 
 Both sockets are plain MIDI byte streams: no framing, no length prefix.
 TCP splits packets arbitrarily — the decoder is a byte-at-a-time state
-machine. Each endpoint accepts up to 40 simultaneous TCP connections
-(A&H documentation), and multiple clients on multiple hosts have been
-run against one console in the field — Companion and A&H's own dLive
-MIDI control app at the same time. The earlier "one connection per
+machine.
+
+**The MixRack serves four simultaneous MIDI clients** (`hardware`,
+measured 18 Oct 2026). This file said 40 until 20 Oct 2026, quoting A&H
+— but that 40 is their *network application* count, a different budget
+on a different port, and never applied to MIDI over TCP. Four is the
+number that matters here, and the fifth client is **accepted and then
+never served**: no error, no close, so it looks connected and goes
+quiet. The measurement is recorded in
+`docs/research-other-modules.md` §5.3; the open questions — whether
+Director takes a slot, whether a client aimed at the Surface costs a
+MixRack slot — are for the next desk session.
+
+Multiple clients on multiple hosts do work within that budget, and have
+been run against one console in the field — Companion and A&H's own
+dLive MIDI control app at the same time. The earlier "one connection per
 port per host" note was an artefact of two clients on one Mac fighting
-over the same local resource, not a console limit. Nothing in this
-module needs to arbitrate for the socket.
+over the same local resource, not a console limit.
+
+This module still never arbitrates for the socket, because it never
+opens one: MIDI Bridge owns the console connection and this module is a
+lane behind it. The slot budget matters anyway, because it is spent by
+everything *else* the operator runs — a direct dLive Companion module
+aimed at the MixRack costs one, and the fifth thing to connect is the
+one that silently does nothing.
 
 TLS requires sending `UserProfile, UserPassword` then waiting for the
 six bytes `AuthOK` before any MIDI, or the console drops the
