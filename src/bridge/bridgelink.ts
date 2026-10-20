@@ -232,6 +232,9 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 
 	query(intent: Intent, _path: string, _priority?: 'high' | 'normal' | 'low'): void {
 		if (!this.laneId) return
+		// No point asking a desk we won't drive, and the answers wouldn't fit:
+		// a cold sync against an SQ earns one bad_intent per strip.
+		if (this.refuseForeign(intent.op)) return
 		if (FIRST_CLASS.has(intent.op)) {
 			void this.postIntent(intent)
 			return
@@ -469,6 +472,10 @@ export class BridgeLink extends EventEmitter<LinkEvents> implements LinkApi {
 	 */
 	private async coldSync(scope: SyncScope, why: string, session: number): Promise<void> {
 		if (scope === 'none') return
+		// A desk we won't drive isn't worth asking about: the bridge answers a
+		// dLive-shaped Get with bad_intent, once per strip, and the values
+		// wouldn't fit our scale anyway.
+		if (this.refuseForeign('query')) return
 		const wide = scope !== 'names'
 		const jobs = (this.opts.strips ?? []).map(({ type, index }) => {
 			const fields = ['name', 'colour']

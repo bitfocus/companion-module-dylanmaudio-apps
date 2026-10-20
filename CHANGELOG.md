@@ -10,6 +10,8 @@
   doesn't know, the module sends nothing at all, says which desk it found
   in the log, and shows it in the connection status. It doesn't move its
   own keys either: a refused press leaves the button where it was.
+  It doesn't ask such a desk anything either: a cold sync's dLive-shaped
+  Gets earn one rejection per strip from a bridge driving an SQ.
   A bridge that reports no console family is a dLive, so every bridge in
   the field today is driven exactly as before. Refusing is the reversible
   choice — a later version can turn a console on without breaking a

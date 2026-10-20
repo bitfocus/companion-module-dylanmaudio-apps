@@ -623,6 +623,31 @@ describe('BridgeLink', () => {
 			fresh.stop()
 		})
 
+		it('does not cold-sync a desk it will not drive', async () => {
+			// found on the SQ-5, 20 Oct: the bridge answers a dLive-shaped Get
+			// with bad_intent, once per strip, so a wide scope is a wall of warnings
+			link.stop()
+			bridge.console = { driver: 'sq', title: 'SQ' }
+			bridge.cmds.length = 0
+			const fresh = new BridgeLink({
+				host: '127.0.0.1',
+				port: bridge.port,
+				laneName: 'sq-sync',
+				baseChannel: 1,
+				retryMs: 50,
+				strips: [
+					{ type: 'input', index: 1 },
+					{ type: 'input', index: 2 },
+				],
+				syncScope: 'names_state',
+			})
+			fresh.start()
+			await waitFor(() => bridge.hellos.length > 0, 'connect')
+			await new Promise((r) => setTimeout(r, 150))
+			expect(queriesTo(bridge)).toEqual([])
+			fresh.stop()
+		})
+
 		it('says so in the connection status', async () => {
 			const { fresh } = await connectTo({ driver: 'sq', title: 'SQ' })
 			await waitFor(() => fresh.status === 'failure', 'status')
