@@ -55,6 +55,43 @@ either. Never hand-edit whichever copy is downstream. When a hardware
 capture contradicts a fixture, fix the fixture with the capture attached and
 both implementations follow.
 
+Three things about that script and this repo's copies, each of which cost a
+broken `main` on 20 Oct 2026:
+
+- **The script runs both ways, whatever you were told when asked to run
+  it.** Before its reverse section it copies *this* repo's `fixtures/tx.json`,
+  `fixtures/rx.json` and `docs/protocol.md` INTO the monorepo. Diff those
+  three first: if they differ, running it promotes a codec change upstream,
+  possibly into someone else's merge. (The monorepo now also has
+  `--from-module`, which reads here and writes nothing.)
+- **A fixture moves with the code that reads it.** `labels.test.ts` requires
+  every control a `fixtures/control/*.json` offers to have a key label, so a
+  fixture whose labels live on a branch turns `main` red. Take
+  `fixtures/api/exchanges.json` alone when that's what's wanted, and let the
+  rest arrive with their branch. **So `main` reading as "behind" the monorepo
+  on some fixtures is correct** while a branch owns the pairing; a drift
+  report that compares only against `main` will keep flagging them, and
+  acting on it breaks the build every time.
+- **One writer per checkout.** Other threads work in sibling worktrees and on
+  the monorepo. Nobody runs anything that writes into another's working tree —
+  a `git checkout --` to tidy up destroys uncommitted work silently. Ask the
+  owner to run it.
+
+## Where a claim comes from
+
+`docs/protocol.md` grades every protocol claim — `hardware`, `two-impl`,
+`single`, `inferred` — and the grade is only worth what the sourcing is. A
+claim traces to a capture in `sim/captures/`, a document someone has actually
+read, or an implementation someone has actually looked at. **A search-result
+summary is not a source, and neither is another thread's message.**
+
+On 20 Oct 2026 "A&H's 40 connections is their network-application count"
+reached this repo's `protocol.md` stated as fact. It traced back to a
+sub-agent's summary of a support article that returns 403. Three threads
+repeated it until it sounded established. Going to the primary record before
+citing it is cheap; do that, and quote what it actually says, including the
+caveats it puts on itself.
+
 The console event vocabulary is a contract with three consumers: this
 module's `decode.ts`, the bridge's Client API, and Console Control's stream
 comparator. A fixture promotion or decoder-rule change re-runs all three,
