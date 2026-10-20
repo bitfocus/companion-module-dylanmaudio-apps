@@ -311,12 +311,11 @@ Actions; a status button.
 **The desk counts connections, and it does not tell you when you run
 out.** This matters because almost nothing says so.
 
-On a dLive, a client beyond the desk's limit is **accepted and then not
-served** — no error, no disconnection — so it sits there looking
-connected while nothing it sends arrives. We have seen that happen with
-four already connected. A&H's documentation says 40 per endpoint; our
-own measurement disagrees and is not yet conclusive, so plan for "fewer
-than you'd think" rather than any particular number.
+**In our tests a dLive MixRack served four MIDI connections** (firmware
+2.12). A&H's documentation says 40 per endpoint; the desk did not agree.
+A fifth client is **accepted and then not served** — no error, no
+disconnection — so it sits there looking connected while nothing it
+sends arrives.
 
 What costs a slot:
 
@@ -340,8 +339,13 @@ console control stays on the bridge. Two things aimed at the MixRack is
 two slots for work one could do.
 
 **Symptom to recognise:** a connection that went green, stayed green, and
-changes nothing. On a dLive that is one client too many. Close something
-else and it starts working, with no other change.
+changes nothing. On a dLive that is one client too many.
+
+**Closing something else is not enough on its own.** A stranded client
+is not picked up when a slot frees — only a fresh connection is served,
+so whatever was stranded has to reconnect. MIDI Bridge handles this for
+you, because it retries every 10 s and is served within seconds of a
+slot opening. A module that connects once and waits will stay silent.
 
 **On other Allen & Heath consoles:** an SQ serves exactly **one** MIDI
 connection, so a direct SQ Companion module takes the only slot and locks
