@@ -13,9 +13,25 @@
 - its Bitfocus store listing;
 - user discussion where it was easy to find.
 
-**I read them for reference only.** No code was copied and no value map
-was taken: nothing here needs the provenance treatment `docs/protocol.md`
-gives the dLive maps. No console or device was contacted.
+**I read them for reference only.** No code was copied, and no value map
+or constant was taken from them. No console or device was contacted.
+
+**The rule for constants.** "Copy nothing" covers derived constants as
+well as code. Every byte value or number in this document is one of three
+things:
+
+1. **A published document's.** That means A&H's, Behringer's or DiGiCo's,
+   through our own research docs.
+2. **Our own measurement**, with its source named.
+3. **A description of what another module does** (its port, its renewal
+   interval, its tuning), tagged **code** and quoted _to explain its
+   behaviour, not adopted_.
+
+Nothing in group 3 is a value for us to use. A timing or a fingerprint we
+would build on is measured on our own captures. A value map we wanted from
+one of these modules would get the provenance treatment `docs/protocol.md`
+gives the dLive maps: the MIT notice kept with the value, and its tier
+recorded. None is proposed here.
 
 The SQ and dLive facts called _measured_ are ours, from
 `docs/status/console.md` in the monorepo. The Wing, DiGiCo and Avantis are
@@ -310,7 +326,7 @@ Names and colours on an SQ need the MixPad port (#228); MIDI has none.
   - wrong scene after a reconnect;
   - a fader-law mismatch that silently rescales every level.
 
-  One parser detail is worth a fixture: 1.5.x sends a scene message with a stray trailing `CN 00` (code: `src/midi/parse/channel-parser.ts:159-166`).
+  One parser detail is worth checking on our own captures. Their parser allows for 1.5.x sending a scene message with a stray trailing program change (code: `src/midi/parse/channel-parser.ts:159-166`). That is a claim resting on their implementation alone, and not ours to fixture until our SQ captures show it.
 
 ### 2.5 Direct versus bridge, on the SQ
 
@@ -387,7 +403,7 @@ Names and colours on an SQ need the MixPad port (#228); MIDI has none.
    A stopgap is to accept their OSC Forwarding stream; it inherits their weak liveness.
 
 3. **Lease loss** is inferred from verification Gets. A change with no push means a miss; two misses in 10 s, or pushes only just after our renewals, mean contended. Then resync and report.
-4. **Name the culprit** from their `/?` discovery broadcasts: "Companion at 10.0.0.5 is running the Bitfocus Wing module". Hearing them needs address reuse, to check on macOS and Windows.
+4. **Name the culprit** from their `/?` discovery broadcasts: "Companion at 10.0.0.5 is running the Bitfocus Wing module". Hearing them needs address reuse, to check on macOS and Windows. The fingerprint is to be taken from our own capture of that module, not from its source.
 5. **HELP** (#253): the one-subscription rule, the symptom, and the three setups.
    - Mention the console's OSC remote lock: a user's commands did nothing until it was off (#247 there).
 
@@ -587,7 +603,7 @@ Names and colours on an SQ need the MixPad port (#228); MIDI has none.
 **What to do:**
 
 - **#225 first:** "the desk accepted but isn't serving; a dLive serves four".
-- **#248:** a census of other clients from relayed traffic (lone NRPN triples, relayed Gets, each module's connect burst), shown as "at least one other".
+- **#248:** a census of other clients from relayed traffic, shown as "at least one other". Lone NRPN triples, relayed Gets and each module's connect burst would be fingerprinted from **our own captures** of those modules running against the Virtual dLive, not from their source.
 - **#253:** a slot table in HELP, plus the advice "for Go / Next / Prev today, add `allenheath-dlive` 1.1.0+ aimed at the **Surface**, and keep console control on the bridge".
 - **#249:** our own opt-in Surface socket.
 - **#261:** correct `docs/protocol.md` §1. It still says each endpoint accepts "up to 40 simultaneous TCP connections".
@@ -635,7 +651,7 @@ Names and colours on an SQ need the MixPad port (#228); MIDI has none.
 - **Over MIDI, an Avantis pushes surface changes but answers Gets only for names and colours** (docs, code).
   - 2.1.1 treats an unknown mute as unmuted for a toggle.
   - It refuses timed and relative fades until the level is known.
-  - Mute groups are base + 4, notes 0x46–0x4D: dLive's DCA 17–24 addresses.
+  - Mute groups sit at dLive's DCA 17–24 addresses. This is A&H's document, as our `sim/avantis/fixtures/protocol.md` already records; their code agrees.
 - **Its HELP says** "one module connection per console" and warns that MIDI ignores user profiles. Nothing on Director, MixPad or a DAW.
 - **Features (2.1.1):**
   - ~85 actions plus 6 MMC;
@@ -685,7 +701,7 @@ The most mature OSC console module, maintained by Companion's lead, and the best
 - **OSC UDP 10023**, from an ephemeral port.
 - **`/xremote` every 1.5 s**, with `/xinfo` polled on the same beat. After 5 s of silence it tears down and rebinds.
 - **Every write goes out through Companion's own OSC sender, from another port** (`src/main.ts:248`, commented as a deliberate hack since 2020). The desk never echoes a write to the client that made it, so this way its own writes come back as change notifications on the lease socket. It is a neat trick for confirming writes.
-- **Cold sync** is ~1,900 Gets, 20 in flight, a 500 ms timeout, no retry. Buttons' paths load lazily.
+- **Cold sync** is ~1,900 Gets, paced by a small in-flight limit and a short timeout, with no retry. Buttons' paths load lazily. Their tuning is theirs; ours comes from the Gets-per-second measurement in our X32 and Wing protocols.
 - **No resync after a reconnect.** Missed changes stay wrong.
 - **Every reconnect is a new local port,** so for up to 10 s a stale lease may hold a second slot (inf).
 - **Nothing about the fifth client**, in code or HELP. A lease the desk isn't serving looks like a quiet desk.
