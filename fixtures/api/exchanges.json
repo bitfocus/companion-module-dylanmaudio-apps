@@ -14,6 +14,23 @@
         "return_port_policy": "broadcasts", "seq": "<int>"}}
     },
     {
+      "id": "info.console",
+      "note": "Spec §1b (2026-10-19, MIDI Bridge 1.4.90): info and hello carry the active driver's client profile. On the dLive it is exactly Talk Light's and Pilot Tone's fallback (shared/bridge_link.fallback_profile) at the bridge's base channel. Additive: a client that ignores it is unaffected.",
+      "request": {"method": "GET", "path": "/api/v1/info"},
+      "response": {"status": 200, "body": {"console": {
+        "driver": "dlive", "title": "dLive",
+        "scenes": {"noun": "Scene", "first": 1, "last": 500},
+        "triggers": {"noun": "SoftKey", "id_prefix": "cc"}}}}
+    },
+    {
+      "id": "console.objects.not_supported",
+      "note": "Spec §1b (MIDI Bridge 1.4.91): GET /console/objects lists every object with its name, colour and stereo layout, from the SQ's MixPad session. The dLive answers 501 not_supported until 1.4.92, and a client falls back to the query op (shared/console_scan.read_console_objects returns None). Nothing reaches the console.",
+      "request": {"method": "GET", "path": "/api/v1/console/objects?timeout_ms=100"},
+      "response": {"status": 501, "body": {
+        "ok": false, "error": {"code": "not_supported"}}},
+      "sends": []
+    },
+    {
       "id": "hello.ok",
       "request": {"method": "POST", "path": "/api/v1/hello",
                   "body": {"v": 1, "session": "main",
