@@ -1,6 +1,13 @@
 # Changelog — dylanmaudio-apps (Bitfocus Companion module)
 
-## 1.1.0 — 2026-10
+## 1.1.1 — 2026-10
+
+Same module as 1.1.0, which was submitted and withdrawn before review —
+the store's submission page won't take a version number twice, so the
+release is renumbered. It also carries two dependency bumps the Bitfocus
+fork merged after 1.1.0 was tagged (brace-expansion, source-map-js).
+
+## 1.1.0 — 2026-10 (withdrawn, never published)
 
 A dLive release. It also makes sure it stays one: MIDI Bridge can now
 drive other Allen & Heath consoles, and this version refuses them rather
