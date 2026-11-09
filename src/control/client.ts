@@ -115,6 +115,17 @@ export class ControlClient extends EventEmitter<ControlClientEvents> {
 		return AbortSignal.timeout(ms)
 	}
 
+	/**
+	 * A press stops on whichever comes first: its own deadline, or Companion
+	 * aborting the button's actions. The signal is the action callback's
+	 * `context.signal`; @companion-module/base calls respecting it optional,
+	 * and a press that may wait 15 s is the case it exists for.
+	 */
+	private pressSignal(abort?: AbortSignal): AbortSignal {
+		const deadline = this.timeout(this.opts.cmdTimeoutMs ?? 15_000)
+		return abort ? AbortSignal.any([abort, deadline]) : deadline
+	}
+
 	/** Current value of a state key; null when unknown. */
 	get(key: string): StateValue {
 		return this.values.get(key) ?? null
@@ -137,7 +148,7 @@ export class ControlClient extends EventEmitter<ControlClientEvents> {
 	}
 
 	/** Press a control. Never throws: a failure is `{ ok: false, code }`. */
-	async cmd(control: string, value?: CmdValue): Promise<CmdResult> {
+	async cmd(control: string, value?: CmdValue, abort?: AbortSignal): Promise<CmdResult> {
 		const cid = `c${++this.cidCounter}`
 		const body: Record<string, unknown> = { v: CTL_API_VERSION, cid, control }
 		if (value !== undefined) body.value = value
@@ -147,9 +158,13 @@ export class ControlClient extends EventEmitter<ControlClientEvents> {
 				method: 'POST',
 				headers: this.headers({ 'Content-Type': 'application/json' }),
 				body: JSON.stringify(body),
-				signal: this.timeout(this.opts.cmdTimeoutMs ?? 15_000),
+				signal: this.pressSignal(abort),
 			})
 		} catch (e) {
+			// Companion dropped this press, because the operator aborted the
+			// button's actions. That says nothing about the app, so don't blame the
+			// link and leave the caller nothing to log.
+			if (abort?.aborted) return { ok: false, status: 0, code: 'aborted' }
 			this.watchdog?.suspect() // a lost press: is the link still there?
 			return {
 				ok: false,

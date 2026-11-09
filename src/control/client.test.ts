@@ -272,6 +272,23 @@ describe('ControlClient across a network (#106)', () => {
 		expect(c.status).toBe('ok')
 	})
 
+	it("stops a press when Companion aborts the button's actions, and doesn't blame the app", async () => {
+		const c = quick({ cmdTimeoutMs: 2000, idleMs: 60_000 })
+		c.start()
+		await waitFor(() => streaming(c), 'stream')
+		mock.cmdDelayMs = 500
+		const abort = new AbortController()
+		const started = Date.now()
+		const pressed = c.cmd('ptt.failback_mode', 'latch', abort.signal)
+		setTimeout(() => abort.abort(), 50)
+		const r = await pressed
+		// 'aborted', not 'not_running': the operator stopped it, the app never
+		// failed. And it gives up at the abort, not at the 2 s press deadline.
+		expect(r).toEqual({ ok: false, status: 0, code: 'aborted' })
+		expect(Date.now() - started).toBeLessThan(400)
+		expect(c.status).toBe('ok')
+	})
+
 	it('a refused token says so, and is asked about again slowly', async () => {
 		mock.refuse = 'Token required'
 		const c = quick({ mismatchRetryMs: 10_000 })
