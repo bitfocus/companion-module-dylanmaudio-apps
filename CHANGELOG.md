@@ -1,5 +1,28 @@
 # Changelog — dylanmaudio-apps (Bitfocus Companion module)
 
+## 1.1.2 — 2026-11
+
+A review-fix release. Nothing in it changes what a button does — except
+that two things now stop sooner than they used to.
+
+- **Stopping a button now stops the press.** Companion's "Abort actions on
+  button" reaches an app press: a Console Control or MIDI Bridge key left
+  waiting on a slow app — the bridge's Restart is the one that can take
+  seconds — gives up at the abort instead of waiting out its 15 s. An
+  aborted press logs nothing and doesn't mark the app as not answering,
+  because the app never failed.
+- **The link check reuses its connection.** The "is the app still there?"
+  check read nothing back from the app's reply, and Node holds a connection
+  until its reply is read. At the size these apps answer today nothing was
+  wrong, but a larger reply would have opened a fresh connection every
+  check.
+
+The rest is repo housekeeping the Bitfocus review asked for, with no effect
+on the module inside Companion: the module template's `.gitignore`,
+pre-commit hook, husky and lint-staged, its release workflow, CI that
+doesn't keep Git credentials after checkout, and the Node 26 runtime that
+API 2.1 expects.
+
 ## 1.1.1 — 2026-10
 
 Same module as 1.1.0, which was submitted and withdrawn before review —
