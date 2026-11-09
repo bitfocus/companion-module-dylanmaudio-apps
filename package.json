@@ -31,7 +31,7 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^3.1.0",
-		"@types/node": "^22.19.17",
+		"@types/node": "^26.6.4",
 		"eslint": "^10.2.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^17.6.0",
